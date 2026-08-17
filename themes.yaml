@@ -1,0 +1,104 @@
+# ============================================================
+#  主題籃子設定檔
+#  這是整個系統唯一需要你手動維護的檔案。
+#  規則：
+#    1. 主題名稱可以用中文，冒號後面不要有多餘空格以外的符號
+#    2. 每個主題建議 6 檔以上，少於 4 檔系統會自動略過
+#    3. 代號用美股 ticker（大寫），抓不到的會自動剔除並記錄在 log
+#    4. group 只影響儀表板分頁：growth / cyclical / hedge
+# ============================================================
+
+# SEC 規定抓取資料時必須表明身分，請把下面改成你自己的 email。
+# 不改也能跑，但 SEC 可能會擋。格式就是「名字 email」這樣一行。
+sec_user_agent: "Personal Research your-email@example.com"
+
+insider_lookback_days: 90   # 內部人交易回看幾天
+
+benchmark: SPY          # 相對強度的比較基準
+lookback_days: 400      # 抓多久的歷史資料（要 > 250 才算得出年度指標）
+chart_weeks: 14         # 卡片折線圖顯示幾週
+
+themes:
+
+  # ---------- 成長 / AI 科技線 ----------
+  光通訊矽光子:
+    group: growth
+    tickers: [COHR, LITE, AAOI, FN, CRDO, POET]
+
+  AI互連ASIC:
+    group: growth
+    tickers: [AVGO, MRVL, ALAB, ANET, CRDO, MTSI]
+
+  半導體設備:
+    group: growth
+    tickers: [AMAT, LRCX, KLAC, ASML, TER, ONTO, ACMR]
+
+  HBM記憶體儲存:
+    group: growth
+    tickers: [MU, WDC, STX, SIMO]
+
+  AI伺服器硬體:
+    group: growth
+    tickers: [SMCI, DELL, HPE, VRT, PSTG]
+
+  資料中心電力基建:
+    group: growth
+    tickers: [ETN, PWR, GEV, HUBB, POWL, VRT]
+
+  核能SMR:
+    group: growth
+    tickers: [SMR, OKLO, NNE, BWXT, LEU]
+
+  鈾核燃料:
+    group: growth
+    tickers: [CCJ, UEC, DNN, NXE, UUUU, URG]
+
+  太空:
+    group: growth
+    tickers: [RKLB, ASTS, LUNR, RDW, PL, BKSY]
+
+  國防軍事:
+    group: growth
+    tickers: [LMT, RTX, NOC, GD, LHX, KTOS, AVAV]
+
+  量子運算:
+    group: growth
+    tickers: [IONQ, RGTI, QBTS, QUBT]
+
+  網路安全:
+    group: growth
+    tickers: [PANW, CRWD, ZS, FTNT, S, CYBR]
+
+  軟體SaaS:
+    group: growth
+    tickers: [CRM, NOW, SNOW, DDOG, MDB, TEAM]
+
+  機器人自動化:
+    group: growth
+    tickers: [ISRG, ROK, SYM, PATH, TER]
+
+  # ---------- 循環 / 原物料 ----------
+  電動車充電:
+    group: cyclical
+    tickers: [TSLA, RIVN, LCID, CHPT, EVGO]
+
+  鋰電池材料:
+    group: cyclical
+    tickers: [ALB, SQM, PLL, LAC, MP]
+
+  銅工業金屬:
+    group: cyclical
+    tickers: [FCX, SCCO, TECK, HBM, ERO]
+
+  油氣服務:
+    group: cyclical
+    tickers: [SLB, HAL, BKR, WFRD, NOV, FTI]
+
+  # ---------- 避險 ----------
+  貴金屬礦:
+    group: hedge
+    tickers: [NEM, GOLD, AEM, KGC, WPM, PAAS]
+
+  公用事業:
+    group: hedge
+    tickers: [NEE, DUK, SO, D, AEP, XEL]

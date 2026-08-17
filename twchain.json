@@ -1,0 +1,464 @@
+{
+ "generated_at": "2026-08-12T09:43:33+00:00",
+ "period": "2026-07",
+ "history_months": 1,
+ "suppliers": {
+  "2330": {
+   "yoy": 44.68755126916978,
+   "mom": 5.624961765550318,
+   "rev": 467580548.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "台積電",
+   "market": "twse"
+  },
+  "3711": {
+   "yoy": 43.15248488549142,
+   "mom": 12.162088373394129,
+   "rev": 73783701.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "日月光投控",
+   "market": "twse"
+  },
+  "2317": {
+   "yoy": 54.18913901503827,
+   "mom": 15.180729324107652,
+   "rev": 946512543.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "鴻海",
+   "market": "twse"
+  },
+  "2382": {
+   "yoy": 131.31830412017854,
+   "mom": -4.911004888434257,
+   "rev": 366274080.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "廣達",
+   "market": "twse"
+  },
+  "3231": {
+   "yoy": 60.760461865560174,
+   "mom": -4.226800004445936,
+   "rev": 308219198.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "緯創",
+   "market": "twse"
+  },
+  "6669": {
+   "yoy": 39.22548649319523,
+   "mom": 5.669698598621475,
+   "rev": 117685530.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "緯穎",
+   "market": "twse"
+  },
+  "2376": {
+   "yoy": 59.67101651519066,
+   "mom": 3.078809189307398,
+   "rev": 44213037.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "技嘉",
+   "market": "twse"
+  },
+  "2357": {
+   "yoy": 53.325092938625424,
+   "mom": -21.16861471829833,
+   "rev": 84131254.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "華碩",
+   "market": "twse"
+  },
+  "2308": {
+   "yoy": 47.74794778461097,
+   "mom": 2.241650107493435,
+   "rev": 67073192.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "台達電",
+   "market": "twse"
+  },
+  "2345": {
+   "yoy": 71.68985948774075,
+   "mom": -0.20703571012057811,
+   "rev": 39472637.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "智邦",
+   "market": "twse"
+  },
+  "2383": {
+   "yoy": 129.40232272458806,
+   "mom": 8.310752025776187,
+   "rev": 19206698.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "台光電",
+   "market": "twse"
+  },
+  "3037": {
+   "yoy": 43.69159138764762,
+   "mom": 9.106560166690944,
+   "rev": 16253637.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "欣興",
+   "market": "twse"
+  },
+  "8046": {
+   "yoy": 50.241184043103516,
+   "mom": 16.126529060393043,
+   "rev": 5439751.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "南電",
+   "market": "twse"
+  },
+  "3661": {
+   "yoy": 181.78410842912646,
+   "mom": 108.07142753171254,
+   "rev": 7433152.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "世芯-KY",
+   "market": "twse"
+  },
+  "3443": {
+   "yoy": 158.38135946958366,
+   "mom": 17.057034658736754,
+   "rev": 5769170.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "創意",
+   "market": "twse"
+  }
+ },
+ "us": {
+  "NVDA": {
+   "reading": 66.9,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 100,
+   "n_suppliers": 12,
+   "suppliers": [
+    {
+     "name": "廣達",
+     "code": "2382",
+     "yoy": 131.31830412017854
+    },
+    {
+     "name": "台光電",
+     "code": "2383",
+     "yoy": 129.40232272458806
+    },
+    {
+     "name": "緯創",
+     "code": "3231",
+     "yoy": 60.760461865560174
+    },
+    {
+     "name": "技嘉",
+     "code": "2376",
+     "yoy": 59.67101651519066
+    },
+    {
+     "name": "鴻海",
+     "code": "2317",
+     "yoy": 54.18913901503827
+    },
+    {
+     "name": "華碩",
+     "code": "2357",
+     "yoy": 53.325092938625424
+    }
+   ]
+  },
+  "AMD": {
+   "reading": 50.3,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 100,
+   "n_suppliers": 4,
+   "suppliers": [
+    {
+     "name": "緯創",
+     "code": "3231",
+     "yoy": 60.760461865560174
+    },
+    {
+     "name": "南電",
+     "code": "8046",
+     "yoy": 50.241184043103516
+    },
+    {
+     "name": "台積電",
+     "code": "2330",
+     "yoy": 44.68755126916978
+    },
+    {
+     "name": "欣興",
+     "code": "3037",
+     "yoy": 43.69159138764762
+    }
+   ]
+  },
+  "AVGO": {
+   "reading": 119.8,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 100,
+   "n_suppliers": 8,
+   "suppliers": [
+    {
+     "name": "世芯-KY",
+     "code": "3661",
+     "yoy": 181.78410842912646
+    },
+    {
+     "name": "創意",
+     "code": "3443",
+     "yoy": 158.38135946958366
+    },
+    {
+     "name": "台光電",
+     "code": "2383",
+     "yoy": 129.40232272458806
+    },
+    {
+     "name": "智邦",
+     "code": "2345",
+     "yoy": 71.68985948774075
+    },
+    {
+     "name": "南電",
+     "code": "8046",
+     "yoy": 50.241184043103516
+    },
+    {
+     "name": "台積電",
+     "code": "2330",
+     "yoy": 44.68755126916978
+    }
+   ]
+  },
+  "QCOM": {
+   "reading": 44.7,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 4,
+   "n_suppliers": 1,
+   "suppliers": [
+    {
+     "name": "台積電",
+     "code": "2330",
+     "yoy": 44.68755126916978
+    }
+   ]
+  },
+  "MU": {
+   "reading": 44.7,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 4,
+   "n_suppliers": 1,
+   "suppliers": [
+    {
+     "name": "台積電",
+     "code": "2330",
+     "yoy": 44.68755126916978
+    }
+   ]
+  },
+  "MRVL": {
+   "reading": 162.2,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 75,
+   "n_suppliers": 3,
+   "suppliers": [
+    {
+     "name": "世芯-KY",
+     "code": "3661",
+     "yoy": 181.78410842912646
+    },
+    {
+     "name": "創意",
+     "code": "3443",
+     "yoy": 158.38135946958366
+    },
+    {
+     "name": "日月光投控",
+     "code": "3711",
+     "yoy": 43.15248488549142
+    }
+   ]
+  },
+  "SMCI": {
+   "reading": 67.1,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 100,
+   "n_suppliers": 6,
+   "suppliers": [
+    {
+     "name": "廣達",
+     "code": "2382",
+     "yoy": 131.31830412017854
+    },
+    {
+     "name": "緯創",
+     "code": "3231",
+     "yoy": 60.760461865560174
+    },
+    {
+     "name": "技嘉",
+     "code": "2376",
+     "yoy": 59.67101651519066
+    },
+    {
+     "name": "鴻海",
+     "code": "2317",
+     "yoy": 54.18913901503827
+    },
+    {
+     "name": "華碩",
+     "code": "2357",
+     "yoy": 53.325092938625424
+    },
+    {
+     "name": "緯穎",
+     "code": "6669",
+     "yoy": 39.22548649319523
+    }
+   ]
+  },
+  "DELL": {
+   "reading": 114.8,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 23,
+   "n_suppliers": 2,
+   "suppliers": [
+    {
+     "name": "廣達",
+     "code": "2382",
+     "yoy": 131.31830412017854
+    },
+    {
+     "name": "鴻海",
+     "code": "2317",
+     "yoy": 54.18913901503827
+    }
+   ]
+  },
+  "HPE": {
+   "reading": 131.3,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 5,
+   "n_suppliers": 1,
+   "suppliers": [
+    {
+     "name": "廣達",
+     "code": "2382",
+     "yoy": 131.31830412017854
+    }
+   ]
+  },
+  "VRT": {
+   "reading": 47.7,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 9,
+   "n_suppliers": 1,
+   "suppliers": [
+    {
+     "name": "台達電",
+     "code": "2308",
+     "yoy": 47.74794778461097
+    }
+   ]
+  },
+  "ETN": {
+   "reading": 47.7,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 3,
+   "n_suppliers": 1,
+   "suppliers": [
+    {
+     "name": "台達電",
+     "code": "2308",
+     "yoy": 47.74794778461097
+    }
+   ]
+  },
+  "ANET": {
+   "reading": 85.2,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 39,
+   "n_suppliers": 2,
+   "suppliers": [
+    {
+     "name": "台光電",
+     "code": "2383",
+     "yoy": 129.40232272458806
+    },
+    {
+     "name": "智邦",
+     "code": "2345",
+     "yoy": 71.68985948774075
+    }
+   ]
+  },
+  "ALAB": {
+   "reading": 181.8,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 7,
+   "n_suppliers": 1,
+   "suppliers": [
+    {
+     "name": "世芯-KY",
+     "code": "3661",
+     "yoy": 181.78410842912646
+    }
+   ]
+  }
+ }
+}

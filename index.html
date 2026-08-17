@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>類股動能雷達</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg:#0a0e1a; --card:#111827; --line:#1f2937;
+    --txt:#e5e7eb; --dim:#8b95a8; --faint:#5a6478;
+    --up:#34d399; --down:#f87171; --mid:#60a5fa; --warn:#fbbf24;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);
+       font-family:-apple-system,"PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+       padding:24px;font-size:14px}
+  .wrap{max-width:1500px;margin:0 auto}
+
+  header{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:20px}
+  h1{font-size:20px;font-weight:600;letter-spacing:.5px}
+  .legend{color:var(--dim);font-size:12.5px;margin-top:8px;line-height:1.7}
+  .meta{color:var(--faint);font-size:12px;margin-top:6px}
+
+  .tabs{display:flex;gap:8px;margin:18px 0}
+  .tab{background:var(--card);border:1px solid var(--line);color:var(--dim);
+       padding:7px 16px;border-radius:7px;cursor:pointer;font-size:13px}
+  .tab:hover{color:var(--txt)}
+  .tab.on{background:#1e293b;color:#fff;border-color:#334155}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+        gap:12px;margin-bottom:20px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
+  .kpi .l{color:var(--faint);font-size:11.5px;letter-spacing:.5px;margin-bottom:6px}
+  .kpi .v{font-size:24px;font-weight:700}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(370px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+        padding:18px 20px 14px}
+  .card.hot{border-color:#14532d;box-shadow:0 0 0 1px #14532d inset}
+  .card.alert{border-color:#78350f;box-shadow:0 0 0 1px #78350f inset}
+
+  .chead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .cname{font-size:16px;font-weight:600}
+  .badge{font-size:11.5px;padding:3px 10px;border-radius:20px;white-space:nowrap;font-weight:500}
+  .badge.new{background:#052e16;color:#4ade80;border:1px solid #166534}
+  .badge.rev{background:#2e1a05;color:#fbbf24;border:1px solid #78350f}
+
+  .score{display:flex;align-items:baseline;gap:9px;margin:12px 0 4px}
+  .score b{font-size:34px;font-weight:700;line-height:1}
+  .score span{font-size:13px;color:var(--dim)}
+  .delta{font-size:12px;margin-left:auto;color:var(--faint)}
+
+  .chartbox{height:130px;margin:10px 0 12px;position:relative}
+
+  .stats{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--dim);
+         border-top:1px solid var(--line);padding-top:11px}
+  .stats b{font-weight:600}
+  .pos{color:var(--up)} .neg{color:var(--down)}
+
+  .flows{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--dim);
+         border-top:1px dashed var(--line);padding-top:10px;margin-top:9px}
+  .flows b{font-weight:600}
+  .flows .na{color:var(--faint)}
+  .sortbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;
+           color:var(--faint);font-size:12.5px}
+  .sortbar select{background:var(--card);border:1px solid var(--line);color:var(--txt);
+                  padding:5px 10px;border-radius:6px;font-size:12.5px}
+
+  details{margin-top:9px}
+  summary{cursor:pointer;color:var(--mid);font-size:12.5px;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary:before{content:"▸ ";}
+  details[open] summary:before{content:"▾ ";}
+  .tk{color:var(--faint);font-size:12px;margin-top:7px;line-height:1.8;
+      font-family:ui-monospace,Menlo,monospace}
+
+  .viewtabs{display:flex;gap:8px;margin:0 0 18px}
+  .vtab{background:transparent;border:none;border-bottom:2px solid transparent;
+        color:var(--dim);padding:8px 4px;margin-right:18px;cursor:pointer;font-size:14px}
+  .vtab.on{color:#fff;border-bottom-color:var(--mid)}
+
+  .chain{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+  .ccard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+  .ctop{display:flex;justify-content:space-between;align-items:baseline}
+  .cticker{font-size:19px;font-weight:700;letter-spacing:.5px}
+  .cdir{font-size:12.5px;padding:3px 10px;border-radius:20px}
+  .creading{font-size:30px;font-weight:700;margin:10px 0 2px}
+  .csub{font-size:12px;color:var(--faint);margin-bottom:12px}
+  .conf{height:5px;background:#1f2937;border-radius:3px;overflow:hidden;margin:9px 0 4px}
+  .conf i{display:block;height:100%;border-radius:3px}
+  .clab{display:flex;justify-content:space-between;font-size:11.5px;color:var(--faint)}
+  .sup{border-top:1px solid var(--line);margin-top:12px;padding-top:10px;
+       font-size:12.5px;color:var(--dim);line-height:1.9}
+  .sup span{display:inline-block;margin-right:12px}
+
+  .note{background:#141b2d;border:1px solid var(--line);border-left:3px solid var(--warn);
+        border-radius:8px;padding:14px 18px;margin-bottom:18px;
+        font-size:12.5px;color:var(--dim);line-height:1.8}
+  .note b{color:var(--txt)}
+
+  #err{background:#2a1215;border:1px solid #7f1d1d;color:#fca5a5;
+       padding:16px 20px;border-radius:10px;line-height:1.7;display:none}
+  footer{color:var(--faint);font-size:11.5px;margin-top:28px;
+         border-top:1px solid var(--line);padding-top:14px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>類股動能雷達 · 早期偵測</h1>
+    <div class="legend">
+      新啟動 = 動能分數首次上穿 55（精準訊號） ·
+      翻轉預警 = 弱勢區出現放量止跌（較早一步） ·
+      分數 0–100 為同日所有主題的橫斷面排名 ·
+      折線為主題等權重指數（起點正規化為 100）<br>
+      內部人 = 近 90 日高層公開市場買賣淨額比（+100 全買 / −100 全賣） ·
+      融券 = 平均空單占流通股比例，括號為較上月變化
+    </div>
+    <div class="meta" id="meta">載入中…</div>
+  </header>
+
+  <div id="err"></div>
+  <div class="viewtabs">
+    <button class="vtab on" data-v="theme">主題動能</button>
+    <button class="vtab" data-v="chain">台廠供應鏈推估</button>
+  </div>
+
+  <div id="viewTheme">
+  <div class="tabs" id="tabs"></div>
+  <div class="sortbar">
+    <label for="sortsel">排序依據</label>
+    <select id="sortsel">
+      <option value="score">動能分數</option>
+      <option value="insider">內部人淨買入</option>
+      <option value="short_chg">融券月增幅</option>
+      <option value="rs20">相對強度20D</option>
+    </select>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="grid" id="grid"></div>
+  </div>
+
+  <div id="viewChain" style="display:none">
+    <div class="note" id="chainNote"></div>
+    <div class="chain" id="chainGrid"></div>
+  </div>
+
+  <footer>
+    本頁為個人研究工具，所有數值均由歷史價量計算而得，不構成投資建議。<br>
+    動能指標本質為同時／落後指標，用途是壓縮偵測延遲，並非預測未來。
+  </footer>
+</div>
+
+<script>
+const GROUPS = {all:"全部", growth:"成長科技", cyclical:"循環原物料", hedge:"避險"};
+let DATA = null, cur = "all", sortBy = "score", charts = [];
+
+function flowsRow(f){
+  if (!f) return '';
+  const usd = n => n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? (n/1e3).toFixed(0)+"K" : n;
+  let ins;
+  if (f.insider_net === null || f.insider_net === undefined) {
+    ins = `<span>內部人 <b class="na">—</b></span>`;
+  } else {
+    const c = f.insider_net > 20 ? "pos" : f.insider_net < -20 ? "neg" : "";
+    ins = `<span>內部人 <b class="${c}">${sign(f.insider_net)}</b>
+      <span class="na">(買 $${usd(f.insider_buy_usd)} / 賣 $${usd(f.insider_sell_usd)})</span></span>`;
+  }
+  let sh;
+  if (f.short_pct === null || f.short_pct === undefined) {
+    sh = `<span>融券 <b class="na">—</b></span>`;
+  } else {
+    const ch = (f.short_chg === null || f.short_chg === undefined) ? ""
+      : ` <span class="${f.short_chg>0?'neg':'pos'}">(${sign(f.short_chg)}%)</span>`;
+    sh = `<span>融券 <b>${f.short_pct.toFixed(1)}%</b>${ch}</span>`;
+  }
+  return `<div class="flows">${ins}${sh}</div>`;
+}
+
+function sortVal(c){
+  if (sortBy === "score")     return c.score;
+  if (sortBy === "rs20")      return c.rs20;
+  if (sortBy === "insider")   return c.flows && c.flows.insider_net !== null
+                                  && c.flows.insider_net !== undefined
+                                  ? c.flows.insider_net : -999;
+  if (sortBy === "short_chg") return c.flows && c.flows.short_chg !== null
+                                  && c.flows.short_chg !== undefined
+                                  ? c.flows.short_chg : -999;
+  return c.score;
+}
+
+function colorOf(c){
+  if (c.state === "加速") return getCSS('--up');
+  if (c.state === "衰竭") return getCSS('--down');
+  return getCSS('--mid');
+}
+const getCSS = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const sign = n => (n >= 0 ? "+" : "") + n.toFixed(1);
+
+function render(){
+  const list = DATA.themes
+    .filter(c => cur === "all" || c.group === cur)
+    .slice().sort((a,b) => sortVal(b) - sortVal(a));
+  charts.forEach(c => c.destroy()); charts = [];
+
+  // KPI 列
+  const hot = list.filter(c => c.signal === "新啟動").length;
+  const rev = list.filter(c => c.signal === "翻轉預警").length;
+  const acc = list.filter(c => c.state === "加速").length;
+  const dec = list.filter(c => c.state === "衰竭").length;
+  const avg = list.length ? list.reduce((s,c)=>s+c.score,0)/list.length : 0;
+  document.getElementById("kpis").innerHTML = [
+    ["新啟動", hot, '--up'], ["翻轉預警", rev, '--warn'],
+    ["加速中", acc, '--up'], ["衰竭中", dec, '--down'],
+    ["平均分數", avg.toFixed(1), '--txt']
+  ].map(([l,v,c]) =>
+    `<div class="kpi"><div class="l">${l}</div>
+     <div class="v" style="color:${getCSS(c)}">${v}</div></div>`).join("");
+
+  // 卡片
+  document.getElementById("grid").innerHTML = list.map((c,i) => {
+    const cls = c.signal === "新啟動" ? "hot" : c.signal === "翻轉預警" ? "alert" : "";
+    const badge = c.signal
+      ? `<span class="badge ${c.signal==="新啟動"?"new":"rev"}">${c.signal}</span>` : "";
+    const d = c.score - c.score_prev;
+    return `<div class="card ${cls}">
+      <div class="chead"><div class="cname">${c.name}</div>${badge}</div>
+      <div class="score">
+        <b style="color:${colorOf(c)}">${c.score.toFixed(1)}</b>
+        <span>${c.state}</span>
+        <span class="delta">日變化 ${sign(d)}</span>
+      </div>
+      <div class="chartbox"><canvas id="cv${i}"></canvas></div>
+      <div class="stats">
+        <span>相對強度20D <b class="${c.rs20>=0?'pos':'neg'}">${sign(c.rs20)}%</b></span>
+        <span>廣度 <b>${c.breadth}%</b></span>
+        <span>量比 <b>${c.volratio.toFixed(2)}×</b></span>
+        <span>${c.n} 檔</span>
+      </div>
+      ${flowsRow(c.flows)}
+      <details><summary>成分股 ${c.n} 檔</summary>
+        <div class="tk">${c.tickers.join(" · ")}</div></details>
+    </div>`;
+  }).join("");
+
+  list.forEach((c,i) => {
+    const col = colorOf(c);
+    charts.push(new Chart(document.getElementById("cv"+i), {
+      type: "line",
+      data: { labels: c.labels, datasets: [{
+        data: c.series, borderColor: col, backgroundColor: col + "18",
+        borderWidth: 2, fill: true, tension: .28,
+        pointRadius: 2, pointHoverRadius: 5, pointBackgroundColor: col }]},
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: { legend: {display:false},
+          tooltip: { callbacks: { label: x => "指數 " + x.parsed.y.toFixed(1) } } },
+        scales: {
+          x: { grid:{display:false}, ticks:{color:getCSS('--faint'),font:{size:9},
+               maxRotation:0, autoSkip:true, maxTicksLimit:7} },
+          y: { grid:{color:getCSS('--line')}, ticks:{color:getCSS('--faint'),font:{size:9},
+               maxTicksLimit:4} }
+        }
+      }
+    }));
+  });
+}
+
+let CHAIN = null;
+
+function dirColor(d){
+  if (d === "強勁擴張") return getCSS('--up');
+  if (d === "溫和成長") return "#86efac";
+  if (d === "持平")     return getCSS('--dim');
+  if (d === "轉弱")     return "#fca5a5";
+  return getCSS('--down');
+}
+
+function renderChain(){
+  const box = document.getElementById("chainGrid");
+  const note = document.getElementById("chainNote");
+  if (!CHAIN) {
+    note.innerHTML = `<b>尚未有台廠營收資料。</b>
+      請執行 <code>python twrev.py</code> 產生 twchain.json 後重新整理。`;
+    box.innerHTML = ""; return;
+  }
+  const depth = CHAIN.history_months || 0;
+  note.innerHTML = `<b>資料年月 ${CHAIN.period}　·　歷史累積 ${depth} 期</b><br>
+    讀數 = 對應台廠月營收年增率的加權平均（權重 = 相關性 × 純度）。
+    信心度反映供應商家數、彼此方向是否一致、以及整體純度——
+    <b>信心度低的讀數只代表一兩家公司的狀況，不能當成該美股的需求指標</b>。
+    ${depth < 15 ? "目前歷史尚淺，加速度指標要累積約 15 期才會完整。" : ""}`;
+
+  const list = Object.entries(CHAIN.us)
+    .sort((a,b) => b[1].confidence - a[1].confidence || b[1].reading - a[1].reading);
+
+  box.innerHTML = list.map(([tk,v]) => {
+    const col = dirColor(v.direction);
+    const cc = v.confidence >= 60 ? getCSS('--up')
+             : v.confidence >= 30 ? getCSS('--warn') : getCSS('--down');
+    const acc = v.accel === null || v.accel === undefined ? ""
+      : `<span>加速度 <b class="${v.accel>=0?'pos':'neg'}">${sign(v.accel)}pp</b></span>`;
+    return `<div class="ccard">
+      <div class="ctop">
+        <div class="cticker">${tk}</div>
+        <div class="cdir" style="color:${col};border:1px solid ${col}44">${v.direction}</div>
+      </div>
+      <div class="creading" style="color:${col}">${sign(v.reading)}%</div>
+      <div class="csub">台廠營收年增率加權讀數 · ${v.n_suppliers} 家供應商 · 方向一致度 ${v.agreement}%</div>
+      <div class="conf"><i style="width:${v.confidence}%;background:${cc}"></i></div>
+      <div class="clab"><span>訊號信心度</span><span style="color:${cc}">${v.confidence}/100</span></div>
+      <div class="sup">${acc}
+        ${v.suppliers.map(x =>
+          `<span>${x.name} <b class="${x.yoy>=0?'pos':'neg'}">${sign(x.yoy)}%</b></span>`).join("")}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+document.querySelectorAll(".vtab").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".vtab").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  const chain = b.dataset.v === "chain";
+  document.getElementById("viewTheme").style.display = chain ? "none" : "";
+  document.getElementById("viewChain").style.display = chain ? "" : "none";
+  if (chain) renderChain();
+});
+
+fetch("twchain.json?" + Date.now())
+  .then(r => r.ok ? r.json() : null).then(d => { CHAIN = d; }).catch(() => {});
+
+fetch("data.json?" + Date.now())
+  .then(r => { if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+  .then(d => {
+    DATA = d;
+    if (d.demo) {
+      const w = document.getElementById("err");
+      w.style.display = "block";
+      w.innerHTML = `<b>⚠️ 這是隨機亂數產生的示範資料</b><br>
+        僅供確認版面能正常顯示。請執行 <code>python radar.py</code> 抓真實行情後重新整理。`;
+    }
+    document.getElementById("meta").textContent =
+      `資料截至 ${d.data_date} · 共 ${d.themes.length} 個主題 · 基準 ${d.benchmark} · ` +
+      `更新於 ${new Date(d.generated_at).toLocaleString("zh-TW")}`;
+    document.getElementById("tabs").innerHTML = Object.entries(GROUPS)
+      .map(([k,v]) => `<button class="tab${k==='all'?' on':''}" data-g="${k}">${v}</button>`).join("");
+    document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
+      document.querySelectorAll(".tab").forEach(x => x.classList.remove("on"));
+      b.classList.add("on"); cur = b.dataset.g; render();
+    });
+    document.getElementById("sortsel").onchange = e => {
+      sortBy = e.target.value; render();
+    };
+    render();
+  })
+  .catch(e => {
+    document.getElementById("meta").textContent = "";
+    const box = document.getElementById("err");
+    box.style.display = "block";
+    box.innerHTML = `<b>讀不到 data.json（${e.message}）</b><br>
+      如果你是直接雙擊開啟這個檔案，瀏覽器基於安全限制不允許讀取本機檔案。<br>
+      請在專案資料夾執行 <code>python -m http.server</code>，
+      再開 <code>http://localhost:8000</code>。<br>
+      部署到 GitHub Pages 後就不會有這個問題。`;
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+name: 每日更新動能雷達
+
+on:
+  schedule:
+    # UTC 22:10 = 台灣早上 06:10（美股收盤後約 2 小時，夏令時間）
+    # 冬令時間會晚一小時抓到，資料一樣正確，不影響
+    - cron: "10 22 * * 2-6"
+  workflow_dispatch:        # 允許在 GitHub 網頁上手動按按鈕跑
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安裝套件
+        run: pip install -r requirements.txt
+
+      - name: 還原快取（資金流向 + 台廠營收歷史）
+        uses: actions/cache@v4
+        with:
+          path: |
+            flows.json
+            twchain.json
+            twrev_history.json
+          key: cache-${{ github.run_id }}
+          restore-keys: cache-
+
+      - name: 抓內部人交易與融券（每週二 + 手動觸發）
+        # 這兩類資料變動慢（Form 4 兩天內申報、融券兩週公布一次），
+        # 每天抓沒有意義，只會拖慢排程並對 SEC 造成不必要負擔。
+        continue-on-error: true
+        run: |
+          DOW=$(date -u +%u)   # 1=週一 … 7=週日
+          if [ "$DOW" = "2" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "執行資金流向模組…"
+            python flows.py
+          else
+            echo "今天不是週二，沿用快取的 flows.json"
+          fi
+
+      - name: 抓台廠月營收（每月 11–15 日 + 手動觸發）
+        # 台灣規定每月 10 日前公布上月營收，所以 11 日之後才抓得到新資料。
+        # 抓 11–15 日這個區間是為了容錯：某天失敗還有機會補上。
+        continue-on-error: true
+        run: |
+          DOM=$(date -u +%d)
+          if [ "$DOM" -ge 11 ] && [ "$DOM" -le 15 ] \
+             || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "執行台廠供應鏈模組…"
+            python twrev.py
+          else
+            echo "非月營收公布期間，沿用快取的 twchain.json"
+          fi
+
+      - name: 抓資料並計算動能
+        run: python radar.py
+
+      - name: 打包網站
+        run: |
+          mkdir -p _site
+          cp index.html data.json _site/
+          [ -f flows.json ] && cp flows.json _site/ || true
+          [ -f twchain.json ] && cp twchain.json _site/ || true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
