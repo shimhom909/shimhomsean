@@ -27,7 +27,7 @@ themes:
 
   AI互連ASIC:
     group: growth
-    tickers: [AVGO, MRVL, ALAB, ANET, CRDO, MTSI]
+    tickers: [AVGO, MRVL, ALAB, ANET, CRDO, MTSI, NVDA, AMD, "ON"]
 
   半導體設備:
     group: growth
@@ -39,7 +39,7 @@ themes:
 
   AI伺服器硬體:
     group: growth
-    tickers: [SMCI, DELL, HPE, VRT, PSTG]
+    tickers: [SMCI, DELL, HPE, VRT, PSTG, NBIS]
 
   資料中心電力基建:
     group: growth
@@ -55,7 +55,7 @@ themes:
 
   太空:
     group: growth
-    tickers: [RKLB, ASTS, LUNR, RDW, PL, BKSY]
+    tickers: [RKLB, ASTS, LUNR, RDW, PL, BKSY, SPCX]
 
   國防軍事:
     group: growth
@@ -71,7 +71,7 @@ themes:
 
   軟體SaaS:
     group: growth
-    tickers: [CRM, NOW, SNOW, DDOG, MDB, TEAM]
+    tickers: [CRM, NOW, SNOW, DDOG, MDB, TEAM, SNPS, GOOGL, PLTR]
 
   機器人自動化:
     group: growth
