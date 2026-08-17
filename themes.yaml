@@ -39,7 +39,7 @@ themes:
 
   AI伺服器硬體:
     group: growth
-    tickers: [SMCI, DELL, HPE, VRT, PSTG, NBIS]
+    tickers: [SMCI, DELL, HPE, VRT, NBIS]
 
   資料中心電力基建:
     group: growth
