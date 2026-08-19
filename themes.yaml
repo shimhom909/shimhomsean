@@ -73,7 +73,7 @@ themes:
 
   量子運算:
     group: growth
-    tickers: [IONQ, RGTI, QBTS, QUBT]
+    tickers: [IONQ, RGTI, QBTS, QUBT, INFQ]
 
   網路安全:
     group: growth
@@ -94,7 +94,7 @@ themes:
 
   鋰電池材料:
     group: cyclical
-    tickers: [ALB, SQM, LAC, MP]
+    tickers: [ALB, SQM, LAC, MP, MVST, QS]
 
   銅工業金屬:
     group: cyclical
