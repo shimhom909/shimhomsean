@@ -20,8 +20,12 @@ HERE = Path(__file__).parent
 CFG = yaml.safe_load((HERE / "themes.yaml").read_text(encoding="utf-8"))
 
 BENCH = CFG.get("benchmark", "SPY")
-LOOKBACK = int(CFG.get("lookback_days", 400))
+LOOKBACK = int(CFG.get("lookback_days", 750))
 CHART_WEEKS = int(CFG.get("chart_weeks", 14))
+MACRO = CFG.get("macro_ratios", []) or []
+
+HIST_DAYS = 250     # history.json 保留幾個交易日
+SPARK_WEEKS = 30    # 大盤狀態列的迷你走勢圖顯示幾週
 
 # 動能分數權重（相加=1）。想調整偏好就改這裡。
 WEIGHTS = {
@@ -133,10 +137,128 @@ def classify(score):
     return "衰竭"
 
 
+# ------------------------------------------------------------ 大盤絕對狀態
+# 主題分數是「同日所有主題之間的排名」，平均值在數學上永遠被釘在 50 附近，
+# 所以不管大盤漲跌，儀表板看起來都差不多。下面這一整層走的是絕對值，
+# 專門回答「整體趨勢往哪走」——刻意跟排名分數分開，不混進去互相汙染。
+
+def _breadth(uni, win):
+    """成分股站上 N 日均線的比例(%)。均線還沒暖機完的日子留 NaN，不灌 0。"""
+    ma = uni.rolling(win).mean()
+    valid = ma.notna() & uni.notna()
+    above = uni.gt(ma) & valid
+    n = valid.sum(axis=1)
+    return above.sum(axis=1) / n.replace(0, np.nan) * 100.0
+
+
+def market_frame(close, theme_tickers):
+    """整段期間的大盤絕對指標，index=日期。"""
+    spy = close[BENCH]
+    ma50 = spy.rolling(50).mean()
+    ma200 = spy.rolling(200).mean()
+
+    m = pd.DataFrame(index=close.index)
+    m["px_vs_ma50"] = (spy / ma50 - 1.0) * 100
+    m["px_vs_ma200"] = (spy / ma200 - 1.0) * 100
+    # 200 日線自己的 20 日斜率：均線在往上還是往下彎，比單看價格站在上下方更穩
+    m["ma200_slope"] = (ma200 / ma200.shift(20) - 1.0) * 100
+    m["drawdown"] = (spy / spy.rolling(252, min_periods=120).max() - 1.0) * 100
+    m["vol20"] = spy.pct_change(fill_method=None).rolling(20).std() * np.sqrt(252) * 100
+
+    uni = close[theme_tickers]
+    m["breadth50"] = _breadth(uni, 50)
+    m["breadth200"] = _breadth(uni, 200)
+
+    m["regime_score"] = regime_score(m)
+    return m
+
+
+def regime_score(m):
+    """
+    五個獨立條件的計票（0–5）。刻意用「數幾個成立」而不是加權模型——
+    這種東西一旦調參就會過擬合，簡單計票至少誠實、看得懂、不會騙自己。
+    NaN 參與比較一律得 False，暖機期自然會落在低分，不需要另外處理。
+    """
+    checks = [
+        m["px_vs_ma200"] > 0,      # 價格在長期均線之上
+        m["ma200_slope"] > 0,      # 長期均線本身往上
+        m["px_vs_ma50"] > 0,       # 價格在中期均線之上
+        m["breadth200"] > 50,      # 過半數成分股處於長期上升結構
+        m["drawdown"] > -10,       # 距 52 週高點回檔未超過 10%
+    ]
+    return sum(c.astype(int) for c in checks)
+
+
+def regime_label(score):
+    if score >= 4:
+        return "擴張"
+    if score >= 2:
+        return "震盪"
+    return "收縮"
+
+
+def macro_ratios(close):
+    """風險偏好比值。方向變化通常比個別主題輪動更早反映資金態度。"""
+    out = []
+    for r in MACRO:
+        num, den = r.get("num"), r.get("den")
+        if num not in close.columns or den not in close.columns:
+            log(f"⚠️  比值 {num}/{den} 缺資料，略過")
+            continue
+        s = (close[num] / close[den]).dropna()
+        if len(s) < 21:
+            continue
+        out.append({
+            "pair": f"{num}/{den}",
+            "label": r.get("label", f"{num}/{den}"),
+            "chg20": round(float(s.iloc[-1] / s.iloc[-21] - 1) * 100, 1),
+            "chg60": round(float(s.iloc[-1] / s.iloc[-61] - 1) * 100, 1)
+                     if len(s) >= 61 else None,
+        })
+    return out
+
+
+# --------------------------------------------------------------- 歷史存檔
+def write_history(scores, mkt):
+    """
+    分數與大盤狀態的歷史。
+
+    注意跟 twrev_history.json 的差別：那邊的資料源只給最新一期快照，
+    歷史非累積不可；這邊每次執行都會把整段期間重算一遍，所以這個檔案是
+    「重算產出」而不是「逐日累積」——不依賴 Actions 快取（快取七天沒被
+    存取就會被清掉），跑漏幾天也會自己補回來，方法論調整後全段一致。
+
+    存成欄狀（dates 一份 + 每個主題一條數列）而不是每天一個物件，
+    檔案大小差三倍以上。
+    """
+    tail = scores.tail(HIST_DAYS)
+    mtail = mkt.reindex(tail.index)
+
+    hist = {
+        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+        "dates": [d.strftime("%Y-%m-%d") for d in tail.index],
+        "themes": {
+            name: [None if pd.isna(v) else round(float(v), 1) for v in tail[name]]
+            for name in tail.columns
+        },
+        "market": {
+            k: [None if pd.isna(v) else round(float(v), 1) for v in mtail[k]]
+            for k in ("px_vs_ma200", "breadth50", "breadth200", "vol20",
+                      "drawdown", "regime_score")
+        },
+    }
+    (HERE / "history.json").write_text(
+        json.dumps(hist, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
+    )
+    log(f"✅ 已寫出 history.json（{len(tail)} 個交易日 × {len(tail.columns)} 個主題）")
+
+
 # ------------------------------------------------------------------- 主流程
 def main():
     themes = CFG["themes"]
-    all_tickers = sorted({t for v in themes.values() for t in v["tickers"]} | {BENCH})
+    theme_tickers = sorted({t for v in themes.values() for t in v["tickers"]})
+    macro_tk = {r[k] for r in MACRO for k in ("num", "den") if r.get(k)}
+    all_tickers = sorted(set(theme_tickers) | macro_tk | {BENCH})
 
     close, volume = fetch_prices(all_tickers)
     if BENCH not in close.columns:
@@ -167,6 +289,37 @@ def main():
 
     latest_date = scores.index[-1]
     log(f"最新資料日期: {latest_date:%Y-%m-%d}，有效主題 {len(indices)} 個")
+
+    # ---- 大盤絕對狀態（廣度只看主題成分股，不含基準與總經 ETF）----
+    breadth_uni = [t for t in theme_tickers if t in close.columns]
+    mkt = market_frame(close, breadth_uni)
+    mrow = mkt.loc[latest_date]
+    rscore = int(mrow["regime_score"])
+
+    spark = mkt.resample("W-FRI").last().dropna(
+        subset=["breadth200", "regime_score"]).tail(SPARK_WEEKS)
+
+    market = {
+        "regime": regime_label(rscore),
+        "regime_score": rscore,
+        "breadth_universe": len(breadth_uni),
+        "ratios": macro_ratios(close),
+        "spark": {
+            "labels": [d.strftime("%m/%d") for d in spark.index],
+            "breadth200": [round(float(v), 1) for v in spark["breadth200"]],
+            "regime_score": [int(v) for v in spark["regime_score"]],
+        },
+    }
+    for k in ("px_vs_ma50", "px_vs_ma200", "ma200_slope",
+              "drawdown", "vol20", "breadth50", "breadth200"):
+        v = mrow[k]
+        market[k] = None if pd.isna(v) else round(float(v), 1)
+
+    # 暖機期不足時這些值會是 None，格式化前先擋掉，不要讓 log 拖垮整支程式
+    fmt = lambda v, s="": "—" if v is None else f"{v:{s}}"
+    log(f"大盤狀態: {market['regime']}（{rscore}/5）· "
+        f"SPY vs 200MA {fmt(market['px_vs_ma200'], '+.1f')}% · "
+        f"廣度200 {fmt(market['breadth200'], '.0f')}%")
 
     cards = []
     for name in indices:
@@ -229,12 +382,15 @@ def main():
         "data_date": latest_date.strftime("%Y-%m-%d"),
         "benchmark": BENCH,
         "thresholds": {"enter": ENTER, "strong": STRONG, "weak": WEAK},
+        "market": market,
         "themes": cards,
     }
     (HERE / "data.json").write_text(
         json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8"
     )
     log(f"✅ 已寫出 data.json（{len(cards)} 個主題）")
+
+    write_history(scores, mkt)
 
     top = [c for c in cards if c["signal"]]
     if top:

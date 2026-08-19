@@ -74,6 +74,8 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html data.json _site/
+          # history.json 由 radar.py 每次重算整段期間產出，不需要快取
+          [ -f history.json ] && cp history.json _site/ || true
           [ -f flows.json ] && cp flows.json _site/ || true
           [ -f twchain.json ] && cp twchain.json _site/ || true
 

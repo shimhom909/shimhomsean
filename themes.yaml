@@ -15,8 +15,18 @@ sec_user_agent: "Personal Research your-email@example.com"
 insider_lookback_days: 90   # 內部人交易回看幾天
 
 benchmark: SPY          # 相對強度的比較基準
-lookback_days: 400      # 抓多久的歷史資料（要 > 250 才算得出年度指標）
+lookback_days: 750      # 抓多久的歷史資料（日曆天）
+                        # 200 日均線 + 52 週高點需要約 250 個交易日才算得出來，
+                        # 750 日曆天 ≈ 515 個交易日，留足暖機期給大盤狀態指標。
 chart_weeks: 14         # 卡片折線圖顯示幾週
+
+# 風險偏好比值：用兩檔 ETF 的相對強弱判斷資金往哪邊跑。
+# 這些代號不會列入主題，只用來判斷整體環境。
+macro_ratios:
+  - {num: QQQ, den: SPY, label: "成長/大盤"}
+  - {num: IWM, den: SPY, label: "小型/大盤"}
+  - {num: HYG, den: IEF, label: "信用風險偏好"}
+  - {num: SPY, den: TLT, label: "股/債"}
 
 themes:
 

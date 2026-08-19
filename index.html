@@ -28,6 +28,22 @@
   .tab:hover{color:var(--txt)}
   .tab.on{background:#1e293b;color:#fff;border-color:#334155}
 
+  /* 大盤絕對狀態列。刻意用不同底色與邊框跟下面的主題卡片區隔開——
+     這一區是絕對值，下面的分數是橫斷面排名，兩者不能用同一種方式解讀。 */
+  .mkt{background:#0d1424;border:1px solid var(--line);border-radius:12px;
+       padding:16px 20px;margin-bottom:20px}
+  .mkthead{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .mktlab{color:var(--faint);font-size:11.5px;letter-spacing:.5px}
+  .regime{font-size:22px;font-weight:700;letter-spacing:1px}
+  .rdots{display:flex;gap:4px;align-items:center}
+  .rdots i{width:19px;height:5px;border-radius:2px;background:#243044;display:block}
+  .mktspark{margin-left:auto;width:210px;height:44px;position:relative}
+  .mktrow{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:12.5px;color:var(--dim);
+          border-top:1px solid var(--line);padding-top:11px;margin-top:12px}
+  .mktrow b{font-weight:600}
+  .mktrow.ratio{border-top:1px dashed var(--line)}
+  .mktrow .na{color:var(--faint)}
+
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
         gap:12px;margin-bottom:20px}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
@@ -110,9 +126,11 @@
   <header>
     <h1>類股動能雷達 · 早期偵測</h1>
     <div class="legend">
+      <b style="color:var(--txt)">大盤環境列為絕對值</b>（看整體多空） ·
+      <b style="color:var(--txt)">主題分數為同日橫斷面排名</b>（看誰相對強，平均恆在 50 附近，
+      不論大盤漲跌都一樣）<br>
       新啟動 = 動能分數首次上穿 55（精準訊號） ·
       翻轉預警 = 弱勢區出現放量止跌（較早一步） ·
-      分數 0–100 為同日所有主題的橫斷面排名 ·
       折線為主題等權重指數（起點正規化為 100）<br>
       內部人 = 近 90 日高層公開市場買賣淨額比（+100 全買 / −100 全賣） ·
       融券 = 平均空單占流通股比例，括號為較上月變化
@@ -127,6 +145,7 @@
   </div>
 
   <div id="viewTheme">
+  <div class="mkt" id="mkt" style="display:none"></div>
   <div class="tabs" id="tabs"></div>
   <div class="sortbar">
     <label for="sortsel">排序依據</label>
@@ -197,6 +216,77 @@ function colorOf(c){
 }
 const getCSS = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const sign = n => (n >= 0 ? "+" : "") + n.toFixed(1);
+
+let mktChart = null;
+
+// 大盤環境列。只依賴 DATA.market，跟分頁篩選無關，所以只畫一次。
+function renderMarket(){
+  const m = DATA.market, box = document.getElementById("mkt");
+  if (!m) { box.style.display = "none"; return; }
+  box.style.display = "";
+
+  const rc = m.regime === "擴張" ? getCSS('--up')
+           : m.regime === "收縮" ? getCSS('--down') : getCSS('--warn');
+
+  // 數值可能因暖機期不足而為 null，一律顯示破折號而不是 0，避免誤導
+  const num = (v, dec, suf, cls) => v === null || v === undefined
+    ? `<b class="na">—</b>`
+    : `<b class="${cls||''}">${v.toFixed(dec)}${suf||''}</b>`;
+  const signed = (v, cls) => v === null || v === undefined
+    ? `<b class="na">—</b>`
+    : `<b class="${cls === undefined ? (v>=0?'pos':'neg') : cls}">${sign(v)}%</b>`;
+
+  const dots = Array.from({length:5}, (_,i) =>
+    `<i style="background:${i < m.regime_score ? rc : '#243044'}"></i>`).join("");
+
+  const ratios = (m.ratios||[]).map(r =>
+    `<span>${r.label} <span class="na">${r.pair}</span> ${signed(r.chg20)}</span>`).join("");
+
+  box.innerHTML = `
+    <div class="mkthead">
+      <div>
+        <div class="mktlab">大盤環境 · ${DATA.benchmark} 絕對狀態</div>
+        <div class="regime" style="color:${rc}">${m.regime}
+          <span style="font-size:13px;color:var(--faint);font-weight:400">
+            ${m.regime_score}/5 項條件成立</span></div>
+      </div>
+      <div class="rdots">${dots}</div>
+      <div class="mktspark"><canvas id="mktcv"></canvas></div>
+    </div>
+    <div class="mktrow">
+      <span>vs 50日線 ${signed(m.px_vs_ma50)}</span>
+      <span>vs 200日線 ${signed(m.px_vs_ma200)}</span>
+      <span>200日線斜率 ${signed(m.ma200_slope)}</span>
+      <span>距 52 週高 ${signed(m.drawdown, m.drawdown > -10 ? '' : 'neg')}</span>
+      <span>20日年化波動 ${num(m.vol20, 1, '%', m.vol20 > 25 ? 'neg' : '')}</span>
+    </div>
+    <div class="mktrow">
+      <span>成分股站上 50日線 ${num(m.breadth50, 0, '%', m.breadth50 >= 50 ? 'pos':'neg')}</span>
+      <span>站上 200日線 ${num(m.breadth200, 0, '%', m.breadth200 >= 50 ? 'pos':'neg')}</span>
+      <span class="na">母體 ${m.breadth_universe} 檔（不含基準與總經 ETF）</span>
+    </div>
+    <div class="mktrow ratio">${ratios || '<span class="na">無風險偏好比值</span>'}</div>`;
+
+  // 迷你圖：200 日線廣度。50% 是多空分水嶺，用虛線標出來才看得懂高低
+  const sp = m.spark;
+  if (!sp || !sp.labels.length) return;
+  if (mktChart) mktChart.destroy();
+  mktChart = new Chart(document.getElementById("mktcv"), {
+    type: "line",
+    data: { labels: sp.labels, datasets: [
+      { data: sp.breadth200, borderColor: rc, backgroundColor: rc + "1e",
+        borderWidth: 1.8, fill: true, tension: .3, pointRadius: 0, pointHoverRadius: 4 },
+      { data: sp.labels.map(() => 50), borderColor: getCSS('--faint'),
+        borderWidth: 1, borderDash: [3,3], pointRadius: 0, fill: false }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend:{display:false}, tooltip:{ filter: x => x.datasetIndex === 0,
+        callbacks:{ label: x => "站上200日線 " + x.parsed.y.toFixed(0) + "%" } } },
+      scales: { x:{display:false}, y:{display:false, min:0, max:100} }
+    }
+  });
+}
 
 function render(){
   const list = DATA.themes
@@ -352,6 +442,7 @@ fetch("data.json?" + Date.now())
     document.getElementById("sortsel").onchange = e => {
       sortBy = e.target.value; render();
     };
+    renderMarket();
     render();
   })
   .catch(e => {
