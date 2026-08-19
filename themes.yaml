@@ -77,7 +77,7 @@ themes:
 
   網路安全:
     group: growth
-    tickers: [PANW, CRWD, ZS, FTNT, S, CYBR]
+    tickers: [PANW, CRWD, ZS, FTNT, S]
 
   軟體SaaS:
     group: growth
@@ -94,7 +94,7 @@ themes:
 
   鋰電池材料:
     group: cyclical
-    tickers: [ALB, SQM, PLL, LAC, MP]
+    tickers: [ALB, SQM, LAC, MP]
 
   銅工業金屬:
     group: cyclical
