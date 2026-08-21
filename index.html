@@ -44,6 +44,17 @@
   .mktrow.ratio{border-top:1px dashed var(--line)}
   .mktrow .na{color:var(--faint)}
 
+  /* 大盤環境與債市壓力並排；窄螢幕自動疊起來 */
+  .toprow{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+  .toprow > .mkt{margin-bottom:0}
+  @media(max-width:1100px){ .toprow{grid-template-columns:1fr} }
+
+  /* 觸發條件指示燈：亮起＝該條件成立 */
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+  .chip{font-size:11.5px;padding:3px 9px;border-radius:20px;
+        border:1px solid var(--line);color:var(--faint);white-space:nowrap}
+  .chip.on{font-weight:600}
+
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
         gap:12px;margin-bottom:20px}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
@@ -72,7 +83,8 @@
   .stats{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--dim);
          border-top:1px solid var(--line);padding-top:11px}
   .stats b{font-weight:600}
-  .pos{color:var(--up)} .neg{color:var(--down)}
+  .pos{color:var(--up)} .neg{color:var(--down)} .warn{color:var(--warn)}
+  .na{color:var(--faint)}
 
   .flows{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--dim);
          border-top:1px dashed var(--line);padding-top:10px;margin-top:9px}
@@ -145,7 +157,10 @@
   </div>
 
   <div id="viewTheme">
-  <div class="mkt" id="mkt" style="display:none"></div>
+  <div class="toprow">
+    <div class="mkt" id="mkt" style="display:none"></div>
+    <div class="mkt" id="rate" style="display:none"></div>
+  </div>
   <div class="tabs" id="tabs"></div>
   <div class="sortbar">
     <label for="sortsel">排序依據</label>
@@ -154,6 +169,7 @@
       <option value="insider">內部人淨買入</option>
       <option value="short_chg">融券月增幅</option>
       <option value="rs20">相對強度20D</option>
+      <option value="rate_beta">利率曝險（最敏感在前）</option>
     </select>
   </div>
   <div class="kpis" id="kpis"></div>
@@ -206,6 +222,8 @@ function sortVal(c){
   if (sortBy === "short_chg") return c.flows && c.flows.short_chg !== null
                                   && c.flows.short_chg !== undefined
                                   ? c.flows.short_chg : -999;
+  // beta 取負號，讓「最敏感（最負）」排在最前面
+  if (sortBy === "rate_beta")  return c.rate ? -c.rate.beta : -999;
   return c.score;
 }
 
@@ -288,6 +306,73 @@ function renderMarket(){
   });
 }
 
+// 債市壓力層。跟大盤環境一樣不受分頁篩選影響，只畫一次。
+function renderRates(){
+  const r = DATA.rates, box = document.getElementById("rate");
+  if (!r) { box.style.display = "none"; return; }
+  box.style.display = "";
+
+  const sc = r.stress >= 4 ? getCSS('--down')
+           : r.stress >= 2 ? getCSS('--warn') : getCSS('--up');
+  const dots = Array.from({length:5}, (_,i) =>
+    `<i style="background:${i < r.stress ? sc : '#243044'}"></i>`).join("");
+
+  const nz = (v, s) => v === null || v === undefined ? '—' : (s||'') + v;
+  const bps = v => v === null || v === undefined ? '—'
+    : `<b class="${v > 0 ? 'neg' : 'pos'}">${v >= 0 ? '+' : ''}${v}bps</b>`;
+
+  // 亮起的燈用壓力色，沒亮的維持灰色——一眼看出是哪幾項觸發的
+  const chips = Object.entries(r.checks || {}).map(([k,v]) =>
+    `<span class="chip${v?' on':''}" style="${v
+      ? `color:${sc};border-color:${sc}66;background:${sc}14` : ''}">${v?'●':'○'} ${k}</span>`
+  ).join("");
+
+  const etfs = (r.etfs||[]).map(e =>
+    `<span>${e.t} 量比 <b class="${e.volratio>1.2?'neg':''}">${e.volratio.toFixed(2)}×</b>
+     <span class="na">20日</span> <b class="${e.ret20>=0?'pos':'neg'}">${sign(e.ret20)}%</b>
+     ${e.heavy?`<b style="color:${getCSS('--down')}">價跌爆量</b>`:''}</span>`).join("");
+
+  // 避險端一律標示為「量測」——這是算出來的事實，不是推薦標的
+  const probe = (r.hedge_probe||[]).map(h =>
+    `<span>${h.t} <b class="${h.beta>0?'pos':h.beta>-0.05?'':'neg'}">${h.beta>=0?'+':''}${h.beta.toFixed(3)}</b>
+     <span class="na">r=${h.corr}</span></span>`).join("");
+
+  box.innerHTML = `
+    <div class="mkthead">
+      <div>
+        <div class="mktlab">債市壓力 · 大量／持續拋售偵測</div>
+        <div class="regime" style="color:${sc}">${r.stress_label}
+          <span style="font-size:13px;color:var(--faint);font-weight:400">
+            ${r.stress}/5 項條件成立</span></div>
+      </div>
+      <div class="rdots">${dots}</div>
+    </div>
+    <div class="chips">${chips}</div>
+    <div class="mktrow">
+      <span>10年期 <b>${nz(r.y10)}%</b>
+        <span class="na">第 ${nz(r.y10_pctile)} 百分位</span>
+        ${r.y10_high250 ? `<b style="color:${getCSS('--down')}">250日新高</b>` : ''}</span>
+      <span>20日 ${bps(r.y10_chg20)}</span>
+      <span>60日 ${bps(r.y10_chg60)}</span>
+    </div>
+    <div class="mktrow">
+      <span>30Y−13W 利差 <b>${nz(r.curve)}%</b> ${bps(r.curve_chg20)}</span>
+      <span>MOVE <b>${nz(r.move)}</b> <span class="na">第 ${nz(r.move_pctile)} 百分位</span></span>
+    </div>
+    <div class="mktrow">${etfs || '<span class="na">無債券 ETF 資料</span>'}</div>
+    <div class="mktrow ratio">
+      <span class="na">避險工具實測 beta（%/bp，正值＝殖利率漲時上漲）：</span>${probe}
+    </div>`;
+}
+
+// 利率敏感度的顏色門檻。beta 越負代表殖利率上升時跌得越凶。
+function rateCls(b){
+  if (b === null || b === undefined) return '';
+  if (b <= -0.25) return 'neg';
+  if (b <= -0.15) return 'warn';
+  return '';
+}
+
 function render(){
   const list = DATA.themes
     .filter(c => cur === "all" || c.group === cur)
@@ -327,6 +412,9 @@ function render(){
         <span>廣度 <b>${c.breadth}%</b></span>
         <span>量比 <b>${c.volratio.toFixed(2)}×</b></span>
         <span>${c.n} 檔</span>
+        ${c.rate ? `<span title="主題日報酬對 10Y 殖利率日變動的迴歸斜率，%/bp">
+          利率敏感 <b class="${rateCls(c.rate.beta)}">${c.rate.beta.toFixed(3)}</b>
+          <span class="na">r=${c.rate.corr}</span></span>` : ''}
       </div>
       ${flowsRow(c.flows)}
       <details><summary>成分股 ${c.n} 檔</summary>
@@ -443,6 +531,7 @@ fetch("data.json?" + Date.now())
       sortBy = e.target.value; render();
     };
     renderMarket();
+    renderRates();
     render();
   })
   .catch(e => {

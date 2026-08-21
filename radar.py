@@ -23,6 +23,7 @@ BENCH = CFG.get("benchmark", "SPY")
 LOOKBACK = int(CFG.get("lookback_days", 750))
 CHART_WEEKS = int(CFG.get("chart_weeks", 14))
 MACRO = CFG.get("macro_ratios", []) or []
+RATES = CFG.get("rate_watch", {}) or {}
 
 HIST_DAYS = 250     # history.json 保留幾個交易日
 SPARK_WEEKS = 30    # 大盤狀態列的迷你走勢圖顯示幾週
@@ -218,6 +219,126 @@ def macro_ratios(close):
     return out
 
 
+# ------------------------------------------------------------ 債市壓力預警
+# 這一層刻意把「觸發」和「曝險」分開量測：
+#   觸發 = 債市現在是不是在被大量／持續拋售（rate_pressure）
+#   曝險 = 每個主題對殖利率變動的實際敏感度（rate_beta，用迴歸量出來的）
+# 動能指標本質是同時／落後指標，等主題分數跌下來才反應已經慢了；
+# 但「曝險」是事前就知道的——殖利率真的動起來時，哪些主題會先被打到，
+# 不必等它們的動能自己壞掉。這不是預測債市，是把反應時間往前挪。
+
+def rate_beta(ret, dy, window):
+    """
+    主題日報酬對殖利率日變動(bps)的迴歸斜率，單位 %報酬/bp。
+    負值 = 殖利率上升時該主題下跌，越負越敏感。
+    同時回傳相關係數——beta 大但相關低代表雜訊多，不能只看斜率。
+    """
+    df = pd.concat([ret.rename("r"), dy.rename("dy")], axis=1).dropna().tail(window)
+    if len(df) < max(40, window // 3) or df["dy"].var() == 0:
+        return None, None
+    beta = df["r"].mul(100).cov(df["dy"]) / df["dy"].var()
+    return round(float(beta), 4), round(float(df["r"].corr(df["dy"])), 2)
+
+
+def _pctile(s, win=250):
+    """目前數值落在近 win 期的第幾百分位。"""
+    t = s.tail(win).dropna()
+    return None if len(t) < 30 else round(float((t <= t.iloc[-1]).mean() * 100))
+
+
+def rate_layer(close, volume, indices):
+    """債市狀態 + 各主題曝險。缺任何一項資料就整層略過，不讓主流程掛掉。"""
+    y10t = RATES.get("y10")
+    if not y10t or y10t not in close.columns:
+        log("ℹ️  無殖利率資料，略過債市壓力層")
+        return None, {}
+
+    y10 = close[y10t].dropna()
+    dy = y10.diff() * 100                      # ^TNX 報價為百分比，×100 = bps
+    win = int(RATES.get("beta_window", 120))
+
+    out = {
+        "y10": round(float(y10.iloc[-1]), 2),
+        "y10_chg20": round(float(y10.iloc[-1] - y10.iloc[-21]) * 100) if len(y10) > 21 else None,
+        "y10_chg60": round(float(y10.iloc[-1] - y10.iloc[-61]) * 100) if len(y10) > 61 else None,
+        "y10_pctile": _pctile(y10),
+        "y10_high250": bool(len(y10) >= 60 and y10.iloc[-1] >= y10.tail(250).max()),
+    }
+
+    # 期限利差走陡（長端賣得比短端凶）最傷長天期資產，跟單看殖利率水準不同
+    y30t, yst = RATES.get("y30"), RATES.get("y_short")
+    if y30t in close.columns and yst in close.columns:
+        curve = (close[y30t] - close[yst]).dropna()
+        out["curve"] = round(float(curve.iloc[-1]), 2)
+        out["curve_chg20"] = (round(float(curve.iloc[-1] - curve.iloc[-21]) * 100)
+                              if len(curve) > 21 else None)
+
+    mv = RATES.get("bondvol")
+    if mv in close.columns:
+        m = close[mv].dropna()
+        out["move"] = round(float(m.iloc[-1]), 1)
+        out["move_pctile"] = _pctile(m)
+
+    # 「大量」拋售：殖利率指數沒有成交量，只能靠債券 ETF 的價跌＋爆量來確認
+    etfs = []
+    for t in RATES.get("etfs", []):
+        if t not in close.columns:
+            continue
+        p, v = close[t].dropna(), volume[t].replace(0, np.nan).dropna()
+        if len(p) < 61 or len(v) < 61:
+            continue
+        vr = float(v.tail(5).mean() / v.tail(60).mean())
+        etfs.append({
+            "t": t,
+            "volratio": round(vr, 2),
+            "ret20": round(float(p.iloc[-1] / p.iloc[-21] - 1) * 100, 1),
+            "heavy": bool(vr > 1.20 and p.iloc[-1] < p.iloc[-21]),   # 價跌且爆量
+        })
+    out["etfs"] = etfs
+
+    # 五項計票，跟大盤環境用同一套邏輯：簡單、看得懂、不調參
+    checks = [
+        (out["y10_pctile"] or 0) >= 80,                    # 殖利率處於高檔區
+        (out["y10_chg20"] or 0) >= 15,                     # 近一個月持續走升
+        (out.get("curve_chg20") or 0) >= 10,               # 長端走陡
+        (out.get("move_pctile") or 0) >= 70,               # 債市波動偏高
+        any(e["heavy"] for e in etfs),                     # 出現價跌爆量的拋售
+    ]
+    out["stress"] = sum(1 for c in checks if c)
+    out["stress_label"] = ("高壓" if out["stress"] >= 4
+                           else "升壓" if out["stress"] >= 2 else "平穩")
+    out["checks"] = {
+        "殖利率高檔": bool(checks[0]), "持續走升": bool(checks[1]),
+        "長端走陡": bool(checks[2]), "債市波動高": bool(checks[3]),
+        "價跌爆量": bool(checks[4]),
+    }
+
+    # 避險端量測：算出實際 beta，才知道誰真的抵銷利率風險。
+    # 這是量測不是推薦——名字像避險不代表數據上真的避得掉。
+    probe = []
+    for t in RATES.get("hedge_probe", []):
+        if t not in close.columns:
+            continue
+        b, c = rate_beta(close[t].pct_change(fill_method=None), dy, win)
+        if b is not None:
+            probe.append({"t": t, "beta": b, "corr": c})
+    out["hedge_probe"] = sorted(probe, key=lambda x: -x["beta"])
+
+    # 各主題曝險
+    betas = {}
+    for name, idx in indices.items():
+        b, c = rate_beta(idx.pct_change(fill_method=None), dy, win)
+        if b is None:
+            continue
+        # 曝險 × 觸發：照近 20 日殖利率的實際變動，估這段期間的利率拖累
+        drag = (round(b * out["y10_chg20"], 1)
+                if out["y10_chg20"] is not None else None)
+        betas[name] = {"beta": b, "corr": c, "drag20": drag}
+    out["beta_window"] = win
+
+    return out, betas
+
+
 # --------------------------------------------------------------- 歷史存檔
 def write_history(scores, mkt):
     """
@@ -258,7 +379,9 @@ def main():
     themes = CFG["themes"]
     theme_tickers = sorted({t for v in themes.values() for t in v["tickers"]})
     macro_tk = {r[k] for r in MACRO for k in ("num", "den") if r.get(k)}
-    all_tickers = sorted(set(theme_tickers) | macro_tk | {BENCH})
+    rate_tk = {RATES[k] for k in ("y10", "y30", "y_short", "bondvol") if RATES.get(k)}
+    rate_tk |= set(RATES.get("etfs", [])) | set(RATES.get("hedge_probe", []))
+    all_tickers = sorted(set(theme_tickers) | macro_tk | rate_tk | {BENCH})
 
     close, volume = fetch_prices(all_tickers)
     if BENCH not in close.columns:
@@ -321,6 +444,15 @@ def main():
         f"SPY vs 200MA {fmt(market['px_vs_ma200'], '+.1f')}% · "
         f"廣度200 {fmt(market['breadth200'], '.0f')}%")
 
+    # ---- 債市壓力與各主題利率曝險 ----
+    rates, rbetas = rate_layer(close, volume, indices)
+    if rates:
+        hit = [k for k, v in rates["checks"].items() if v]
+        log(f"債市壓力: {rates['stress_label']}（{rates['stress']}/5）· "
+            f"10Y {rates['y10']:.2f}% 第 {rates['y10_pctile']} 百分位 · "
+            f"20日 {fmt(rates['y10_chg20'], '+d')}bps"
+            + (f" · 觸發: {'、'.join(hit)}" if hit else ""))
+
     cards = []
     for name in indices:
         s = scores[name].dropna()
@@ -361,6 +493,7 @@ def main():
             "tickers": valid[name],
             "series": [round(float(v), 1) for v in weekly.values],
             "labels": [d.strftime("%m/%d") for d in weekly.index],
+            "rate": rbetas.get(name),
         })
 
     # ---- 合併資金流向資料（flows.py 產出，沒有就跳過）----
@@ -383,6 +516,7 @@ def main():
         "benchmark": BENCH,
         "thresholds": {"enter": ENTER, "strong": STRONG, "weak": WEAK},
         "market": market,
+        "rates": rates,
         "themes": cards,
     }
     (HERE / "data.json").write_text(

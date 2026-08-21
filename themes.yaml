@@ -28,6 +28,20 @@ macro_ratios:
   - {num: HYG, den: IEF, label: "信用風險偏好"}
   - {num: SPY, den: TLT, label: "股/債"}
 
+# 債市壓力預警。
+# 目的是在債券被大量或持續拋售的當下就亮燈，而不是等主題動能自己跌破。
+# 殖利率指數(^開頭)沒有成交量，「大量」只能靠債券 ETF 的量能確認，兩者要並用。
+rate_watch:
+  y10: "^TNX"          # 10 年期殖利率
+  y30: "^TYX"          # 30 年期
+  y_short: "^IRX"      # 13 週國庫券，拿來算期限利差
+  bondvol: "^MOVE"     # 債市波動指數，等同債券版的 VIX
+  etfs: [TLT, IEF]     # 有成交量，用來確認是否「大量」拋售
+  # 量測用，不是建議標的：算出各自對殖利率的實際 beta，
+  # 才知道哪些東西真的能抵銷利率風險、哪些只是名字聽起來像避險。
+  hedge_probe: [GLD, UUP, SHV, XLU, XLP, TLT]
+  beta_window: 120     # rate beta 的迴歸視窗（交易日）
+
 themes:
 
   # ---------- 成長 / AI 科技線 ----------
