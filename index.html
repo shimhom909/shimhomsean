@@ -55,6 +55,27 @@
         border:1px solid var(--line);color:var(--faint);white-space:nowrap}
   .chip.on{font-weight:600}
 
+  /* 歷史走勢：小圖總覽（同一 y 軸尺度，一眼比出誰漲誰跌）+ 疊圖比較（最多 4 檔） */
+  .histsub{display:flex;gap:8px;margin-bottom:16px}
+  .hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:10px}
+  .htile{background:var(--card);border:1px solid var(--line);border-radius:10px;
+         padding:10px 12px 8px}
+  .hhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:2px}
+  .hname{font-size:12px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hval{font-size:15px;font-weight:700;white-space:nowrap}
+  .hbox{height:52px;position:relative}
+
+  .cmphint{color:var(--faint);font-size:12px;margin-bottom:12px;line-height:1.6}
+  .cmppick{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+  .cmpchip{font-size:12px;padding:5px 12px;border-radius:20px;cursor:pointer;
+           border:1px solid var(--line);color:var(--dim);background:transparent;
+           user-select:none}
+  .cmpchip.disabled{opacity:.35;cursor:not-allowed}
+  .cmpwrap{background:var(--card);border:1px solid var(--line);border-radius:12px;
+           padding:18px 20px 16px}
+  .cmpbox{height:380px;position:relative}
+  .cmpempty{color:var(--faint);font-size:13px;text-align:center;padding:60px 0}
+
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
         gap:12px;margin-bottom:20px}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
@@ -153,6 +174,7 @@
   <div id="err"></div>
   <div class="viewtabs">
     <button class="vtab on" data-v="theme">主題動能</button>
+    <button class="vtab" data-v="hist">歷史走勢</button>
     <button class="vtab" data-v="chain">台廠供應鏈推估</button>
   </div>
 
@@ -174,6 +196,25 @@
   </div>
   <div class="kpis" id="kpis"></div>
   <div class="grid" id="grid"></div>
+  </div>
+
+  <div id="viewHist" style="display:none">
+    <div class="note" id="histNote"></div>
+    <div class="histsub" id="histsub">
+      <button class="tab on" data-h="grid">小圖總覽（20 主題同尺度）</button>
+      <button class="tab" data-h="cmp">疊圖比較（最多 4 檔）</button>
+    </div>
+    <div id="histGridView"><div class="hgrid" id="hgrid"></div></div>
+    <div id="histCmpView" style="display:none">
+      <div class="cmphint">
+        點選最多 4 個主題疊圖比較；每次點選的顏色固定不變，
+        拿掉其中一個不會讓其他主題的顏色跳動。
+      </div>
+      <div class="cmppick" id="cmppick"></div>
+      <div class="cmpwrap">
+        <div class="cmpbox"><canvas id="cmpcv"></canvas></div>
+      </div>
+    </div>
   </div>
 
   <div id="viewChain" style="display:none">
@@ -445,6 +486,175 @@ function render(){
   });
 }
 
+// 疊圖比較用的固定分類色（驗證過 CVD 可分辨、對本站深色卡片背景對比 ≥4.5:1）。
+// 依選取「順序」而非目前排序分配欄位，拿掉其中一個不會讓其他人變色——
+// 顏色跟著實體走，不是跟著名次走。
+const CMP_COLORS = ["#3987e5", "#d95926", "#199e70", "#c98500"];
+let HIST = null, histCharts = [], cmpChart = null;
+let cmpSlots = [null, null, null, null];   // slot index -> 主題名稱
+
+function sparkline(el, dates, values, color, refLine){
+  const ds = [{
+    data: values, borderColor: color, backgroundColor: color + "14",
+    borderWidth: 1.6, fill: !!refLine, tension: .25,
+    pointRadius: 0, pointHoverRadius: 3, spanGaps: true,
+  }];
+  if (refLine !== undefined) {
+    ds.push({ data: dates.map(() => refLine), borderColor: getCSS('--faint'),
+      borderWidth: 1, borderDash: [3,3], pointRadius: 0, fill: false });
+  }
+  return new Chart(el, {
+    type: "line",
+    data: { labels: dates, datasets: ds },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend:{display:false}, tooltip:{enabled:false} },
+      scales: { x:{display:false}, y:{display:false, min:0, max:100} }
+    }
+  });
+}
+
+// 小圖總覽：20 主題各一張迷你圖，統一 0–100 y 軸尺度，才比得出細節差異
+// ——這是上次疊圖看不清楚問題的直接解法。線色沿用跟主卡片一致的
+// 狀態色（加速/衰竭/中性），不是分類色：這裡每格只有一條線，用狀態色
+// 反而能跟主題動能頁的判讀邏輯對上。
+function renderHistGrid(){
+  const box = document.getElementById("hgrid");
+  if (!HIST) { box.innerHTML = ""; return; }
+  histCharts.forEach(c => c.destroy()); histCharts = [];
+
+  const names = Object.keys(HIST.themes).sort((a,b) => {
+    const va = HIST.themes[a], vb = HIST.themes[b];
+    const la = [...va].reverse().find(v => v !== null);
+    const lb = [...vb].reverse().find(v => v !== null);
+    return (lb ?? -1) - (la ?? -1);
+  });
+
+  const colFor = name => {
+    const cur = DATA && DATA.themes ? DATA.themes.find(t => t.name === name) : null;
+    return cur ? colorOf(cur) : getCSS('--mid');
+  };
+
+  box.innerHTML = names.map((name, i) => {
+    const vals = HIST.themes[name];
+    const last = [...vals].reverse().find(v => v !== null);
+    return `<div class="htile">
+      <div class="hhead">
+        <span class="hname" title="${name}">${name}</span>
+        <span class="hval" style="color:${colFor(name)}">${last !== undefined ? last.toFixed(0) : '—'}</span>
+      </div>
+      <div class="hbox"><canvas id="hcv${i}"></canvas></div>
+    </div>`;
+  }).join("");
+
+  names.forEach((name, i) => {
+    histCharts.push(sparkline(document.getElementById("hcv"+i), HIST.dates, HIST.themes[name], colFor(name), 50));
+  });
+}
+
+// 疊圖比較：最多 4 檔，用固定分類色 + 折線終點直接標籤（比照使用者截圖的做法）
+function slotOf(name){ return cmpSlots.indexOf(name); }
+
+function renderCmpPicker(){
+  const box = document.getElementById("cmppick");
+  if (!HIST) { box.innerHTML = ""; return; }
+  const names = Object.keys(HIST.themes).sort();
+  const full = cmpSlots.every(s => s !== null);
+  box.innerHTML = names.map(name => {
+    const slot = slotOf(name);
+    const on = slot >= 0;
+    const disabled = !on && full;
+    const style = on ? `border-color:${CMP_COLORS[slot]};color:${CMP_COLORS[slot]};
+      background:${CMP_COLORS[slot]}14` : "";
+    return `<button class="cmpchip${on?' on':''}${disabled?' disabled':''}"
+      data-name="${name}" style="${style}">${on?'● ':''}${name}</button>`;
+  }).join("");
+
+  box.querySelectorAll(".cmpchip").forEach(btn => btn.onclick = () => {
+    const name = btn.dataset.name;
+    const slot = slotOf(name);
+    if (slot >= 0) {
+      cmpSlots[slot] = null;                              // 取消選取，釋放欄位
+    } else {
+      const free = cmpSlots.indexOf(null);
+      if (free === -1) return;                             // 已滿 4 檔，不理會
+      cmpSlots[free] = name;                                // 依「最小空欄位」分配，之前選的不動
+    }
+    renderCmpPicker();
+    renderCmpChart();
+  });
+}
+
+function renderCmpChart(){
+  const box = document.querySelector(".cmpbox");
+  const picked = cmpSlots.map((name, slot) => name ? {name, slot} : null).filter(Boolean);
+  if (!HIST || picked.length === 0) {
+    if (cmpChart) { cmpChart.destroy(); cmpChart = null; }
+    box.innerHTML = `<div class="cmpempty">上面點選 1–4 個主題開始比較</div>`;
+    return;
+  }
+  if (!document.getElementById("cmpcv")) box.innerHTML = `<canvas id="cmpcv"></canvas>`;
+
+  // 終點直接標籤（跟圖表共用同一個容器定位），收斂到同一右緣避免互相遮擋
+  const datasets = picked.map(({name, slot}) => ({
+    label: name,
+    data: HIST.themes[name],
+    borderColor: CMP_COLORS[slot],
+    backgroundColor: CMP_COLORS[slot] + "12",
+    borderWidth: 2, tension: .25, fill: false,
+    pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: CMP_COLORS[slot],
+    spanGaps: true,
+  }));
+
+  if (cmpChart) cmpChart.destroy();
+  cmpChart = new Chart(document.getElementById("cmpcv"), {
+    type: "line",
+    data: { labels: HIST.dates, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: "index", intersect: false },     // 十字線找 X，一次列出所有系列
+      plugins: {
+        legend: { display: picked.length >= 2, position: "bottom",
+          labels: { color: getCSS('--dim'), boxWidth: 20, boxHeight: 2, font:{size:11.5} } },
+        tooltip: {
+          mode: "index", intersect: false,
+          callbacks: { label: x => ` ${x.dataset.label}  ${x.parsed.y.toFixed(1)}` }
+        }
+      },
+      scales: {
+        x: { grid:{display:false}, ticks:{color:getCSS('--faint'),font:{size:10},
+             maxRotation:0, autoSkip:true, maxTicksLimit:10} },
+        y: { min:0, max:100, grid:{color:getCSS('--line')},
+             ticks:{color:getCSS('--faint'),font:{size:10}} }
+      }
+    }
+  });
+}
+
+function renderHist(){
+  const note = document.getElementById("histNote");
+  if (!HIST) {
+    note.innerHTML = `<b>尚未有歷史資料。</b>
+      請執行 <code>python radar.py</code> 產生 history.json 後重新整理。`;
+    document.getElementById("hgrid").innerHTML = "";
+    return;
+  }
+  note.innerHTML = `<b>近 ${HIST.dates.length} 個交易日 · ${Object.keys(HIST.themes).length} 個主題</b><br>
+    分數為同日橫斷面排名（0–100），跟「主題動能」頁用的是同一套定義，
+    可以直接對照；虛線標的是 50 分中性線。`;
+  renderHistGrid();
+  renderCmpPicker();
+  renderCmpChart();
+}
+
+document.getElementById("histsub").querySelectorAll(".tab").forEach(b => b.onclick = () => {
+  document.getElementById("histsub").querySelectorAll(".tab").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  const cmp = b.dataset.h === "cmp";
+  document.getElementById("histGridView").style.display = cmp ? "none" : "";
+  document.getElementById("histCmpView").style.display = cmp ? "" : "none";
+});
+
 let CHAIN = null;
 
 function dirColor(d){
@@ -499,14 +709,23 @@ function renderChain(){
 document.querySelectorAll(".vtab").forEach(b => b.onclick = () => {
   document.querySelectorAll(".vtab").forEach(x => x.classList.remove("on"));
   b.classList.add("on");
-  const chain = b.dataset.v === "chain";
-  document.getElementById("viewTheme").style.display = chain ? "none" : "";
-  document.getElementById("viewChain").style.display = chain ? "" : "none";
-  if (chain) renderChain();
+  const v = b.dataset.v;
+  document.getElementById("viewTheme").style.display = v === "theme" ? "" : "none";
+  document.getElementById("viewHist").style.display  = v === "hist"  ? "" : "none";
+  document.getElementById("viewChain").style.display = v === "chain" ? "" : "none";
+  if (v === "chain") renderChain();
+  if (v === "hist") renderHist();
 });
 
 fetch("twchain.json?" + Date.now())
   .then(r => r.ok ? r.json() : null).then(d => { CHAIN = d; }).catch(() => {});
+
+fetch("history.json?" + Date.now())
+  .then(r => r.ok ? r.json() : null)
+  .then(d => {
+    HIST = d;
+    if (document.getElementById("viewHist").style.display !== "none") renderHist();
+  }).catch(() => {});
 
 fetch("data.json?" + Date.now())
   .then(r => { if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
@@ -533,6 +752,7 @@ fetch("data.json?" + Date.now())
     renderMarket();
     renderRates();
     render();
+    if (document.getElementById("viewHist").style.display !== "none") renderHist();
   })
   .catch(e => {
     document.getElementById("meta").textContent = "";
