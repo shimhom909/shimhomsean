@@ -67,7 +67,16 @@ themes:
 
   資料中心電力基建:
     group: growth
-    tickers: [ETN, PWR, GEV, HUBB, POWL, VRT]
+    tickers: [ETN, HUBB, POWL, VRT]
+
+  發電端:
+    group: growth
+    # GEV、PWR 的業務同時橫跨發電與輸配電（業務描述明寫「generate, transmit」/
+    # 電廠與電網統包工程），拆分時歸在這裡而不是上面的輸配電端。
+    # LEU、ALB 跟 核能SMR、鋰電池材料 主題重複——這是刻意的：
+    # LEU（鈾濃縮）同時是核能發電鏈的一環，ALB（鋰）同時是電網儲能材料，
+    # 兩者在不同主題鏡頭下都站得住腳，不是誤植。
+    tickers: [GEV, PWR, BE, VST, LEU, ALB]
 
   核能SMR:
     group: growth
