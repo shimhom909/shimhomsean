@@ -6,6 +6,20 @@ on:
     # 冬令時間會晚一小時抓到，資料一樣正確，不影響
     - cron: "10 22 * * 2-6"
   workflow_dispatch:        # 允許在 GitHub 網頁上手動按按鈕跑
+  push:
+    branches: [main]
+    # 改了設定或計算邏輯就自動重跑重新部署，不必記得手動觸發。
+    # 只列會影響輸出的檔案：改 README 之類的不需要重跑。
+    # 這個 workflow 不會 commit 回 repo（只部署到 Pages），沒有無限迴圈風險。
+    paths:
+      - themes.yaml
+      - supply_chain.yaml
+      - radar.py
+      - flows.py
+      - twrev.py
+      - index.html
+      - requirements.txt
+      - .github/workflows/daily.yml
 
 permissions:
   contents: read

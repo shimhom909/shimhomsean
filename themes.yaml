@@ -14,6 +14,16 @@ sec_user_agent: "Personal Research your-email@example.com"
 
 insider_lookback_days: 90   # 內部人交易回看幾天
 
+# 動能分數的因子組合。
+#   legacy       — 現行公式。注意 rs20 與 roc20 在橫斷面排名下完全等價
+#                  （實測 730/730 個交易日名次相同），所以 0.55 權重
+#                  其實全押在同一個「20 日報酬」，名目五因子實為四個。
+#   decorrelated — 把重複的那 0.25 換成 roc60，拉開時間尺度並補上中長期因子。
+# 切換會讓 history.json 的歷史分數不可比（同一天名次會變），預設維持 legacy。
+# 兩組公式的實際差異可執行 python _compare_profiles.py 查看。
+scoring:
+  profile: legacy
+
 benchmark: SPY          # 相對強度的比較基準
 lookback_days: 750      # 抓多久的歷史資料（日曆天）
                         # 200 日均線 + 52 週高點需要約 250 個交易日才算得出來，
@@ -47,11 +57,14 @@ themes:
   # ---------- 成長 / AI 科技線 ----------
   光通訊矽光子:
     group: growth
-    tickers: [COHR, LITE, AAOI, FN, CRDO, POET]
+    # GLW（康寧）業務描述首項就是 optical communications（光纖），歸這裡。
+    tickers: [COHR, LITE, AAOI, FN, CRDO, POET, GLW]
 
   AI互連ASIC:
     group: growth
-    tickers: [AVGO, MRVL, ALAB, ANET, CRDO, MTSI, NVDA, AMD, "ON"]
+    # ARM 是 CPU/GPU IP 授權商、INTC 是晶片設計製造商，兩者都屬晶片設計端，
+    # 跟下面「半導體設備」（賣機台給晶圓廠的 AMAT/ASML 那類）不同層。
+    tickers: [AVGO, MRVL, ALAB, ANET, CRDO, MTSI, NVDA, AMD, "ON", ARM, INTC]
 
   半導體設備:
     group: growth
@@ -63,11 +76,14 @@ themes:
 
   AI伺服器硬體:
     group: growth
-    tickers: [SMCI, DELL, HPE, VRT, NBIS]
+    # CRWV 與 NBIS 同類：自建機房出租 GPU 算力的 AI 雲端業者。
+    tickers: [SMCI, DELL, HPE, VRT, NBIS, CRWV]
 
   資料中心電力基建:
     group: growth
-    tickers: [ETN, HUBB, POWL, VRT]
+    # APH（安費諾）做電氣／電子／光纖連接器，屬機房實體互連硬體。
+    # 補進來後這個主題脫離 4 檔門檻，不再一掉代號就整個消失。
+    tickers: [ETN, HUBB, POWL, VRT, APH]
 
   發電端:
     group: growth
@@ -76,7 +92,8 @@ themes:
     # LEU、ALB 跟 核能SMR、鋰電池材料 主題重複——這是刻意的：
     # LEU（鈾濃縮）同時是核能發電鏈的一環，ALB（鋰）同時是電網儲能材料，
     # 兩者在不同主題鏡頭下都站得住腳，不是誤植。
-    tickers: [GEV, PWR, BE, VST, LEU, ALB]
+    # FLNC 做電網級儲能系統，屬供電側而非用電側。
+    tickers: [GEV, PWR, BE, VST, LEU, ALB, FLNC]
 
   核能SMR:
     group: growth

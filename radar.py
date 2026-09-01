@@ -28,20 +28,81 @@ RATES = CFG.get("rate_watch", {}) or {}
 HIST_DAYS = 250     # history.json 保留幾個交易日
 SPARK_WEEKS = 30    # 大盤狀態列的迷你走勢圖顯示幾週
 
-# 動能分數權重（相加=1）。想調整偏好就改這裡。
-WEIGHTS = {
-    "rs20": 0.30,      # 相對大盤 20 日超額報酬  -> 最重要
-    "roc20": 0.25,     # 自身 20 日報酬
-    "breadth": 0.20,   # 成分股站上 50 日線比例
-    "trend": 0.15,     # 主題指數偏離 50 日線幅度
-    "volratio": 0.10,  # 5日均量 / 60日均量
+# ---------------------------------------------------------------- 動能因子
+#
+# ⚠️ 關於 rs20 與 roc20（實測結論，不是推測）
+#
+#   rs20 = roc20 − 同日大盤報酬。同一天所有主題減掉的是「同一個純量」，
+#   而分數只吃橫斷面名次（cross_sectional_score 用 rank(axis=1, pct=True)）。
+#   整排數字同減一個常數，相對名次完全不變 —— 也就是說：
+#
+#       rank(rs20) ≡ rank(roc20)   逐日恆等
+#
+#   實測 730 個交易日全數相同，最大排名差 0.00e+00。所以 legacy 這組
+#   名目上是五因子，實際只有四個獨立因子，0.55 權重全押在同一個 20 日報酬。
+#
+#   注意：rs20 作為「顯示欄位」仍然有意義（卡片上的相對強度是真實資訊），
+#   它只是作為「排名因子」不提供任何獨立資訊。所以修正方向不是刪掉 rs20，
+#   而是把重複的那一份權重換成別的時間尺度。
+#
+# 切換 profile 會讓 history.json 的歷史分數不可比（同一天的名次會變），
+# 所以預設維持 legacy；要改請在 themes.yaml 設 scoring.profile。
+WEIGHT_PROFILES = {
+    # 現行公式。保留原樣以維持歷史可比性。
+    "legacy": {
+        "rs20": 0.30,      # 相對大盤 20 日超額報酬（排名上等同 roc20）
+        "roc20": 0.25,     # 自身 20 日報酬
+        "breadth": 0.20,   # 成分股站上 50 日線比例
+        "trend": 0.15,     # 主題指數偏離 50 日線幅度
+        "volratio": 0.10,  # 5日均量 / 60日均量
+    },
+    # 把重複的那 0.25 換成 60 日報酬：拉開時間尺度，補上原本缺乏的
+    # 中長期因子，同時不影響 rs20 的顯示用途。
+    "decorrelated": {
+        "rs20": 0.30,
+        "roc60": 0.25,
+        "breadth": 0.20,
+        "trend": 0.15,
+        "volratio": 0.10,
+    },
 }
+
+SCORING = CFG.get("scoring", {}) or {}
+PROFILE = SCORING.get("profile", "legacy")
+if PROFILE not in WEIGHT_PROFILES:
+    raise SystemExit(f"themes.yaml 的 scoring.profile 只能是 "
+                     f"{'/'.join(WEIGHT_PROFILES)}，收到: {PROFILE}")
+WEIGHTS = WEIGHT_PROFILES[PROFILE]
 
 ENTER = 55      # 分數上穿此值 = 新啟動
 STRONG = 70     # 以上 = 加速
 WEAK = 45       # 以下 = 衰竭
 
 log = lambda m: print(f"[{dt.datetime.now():%H:%M:%S}] {m}", flush=True)
+
+
+def num(v, dec=1, scale=1.0):
+    """
+    數值轉 JSON 安全的型別。
+
+    非做不可的理由：Python 的 json.dumps 預設會把 NaN 寫成裸 NaN，那是
+    Python 專屬的擴充，不是合法 JSON——瀏覽器 JSON.parse() 會直接拋錯，
+    導致整個網站讀不到資料。而 NaN 很容易發生（例如某天所有成分股成交量
+    為 0，volratio 整排就會變 NaN），所以每個要寫進 JSON 的數值都得過這關。
+    寫檔時另外加 allow_nan=False 當第二道防線。
+    """
+    if v is None:
+        return None
+    try:
+        f = float(v) * scale
+    except (TypeError, ValueError):
+        return None
+    if not np.isfinite(f):      # NaN 與 ±inf 一律轉 null
+        return None
+    if dec is None:
+        return f
+    # dec=0 回傳 int，JSON 才不會出現 80.0 這種多餘的小數點
+    return int(round(f)) if dec == 0 else round(f, dec)
 
 
 # ------------------------------------------------------------------ 抓資料
@@ -94,6 +155,7 @@ def raw_metrics(idx, close, volume, tickers, bench_idx):
     m = pd.DataFrame(index=idx.index)
 
     m["roc20"] = idx.pct_change(20)
+    m["roc60"] = idx.pct_change(60)     # decorrelated profile 用；也一併輸出供對照
     m["rs20"] = m["roc20"] - bench_idx.pct_change(20).reindex(idx.index)
 
     ma50 = idx.rolling(50).mean()
@@ -290,8 +352,8 @@ def rate_layer(close, volume, indices):
         vr = float(v.tail(5).mean() / v.tail(60).mean())
         etfs.append({
             "t": t,
-            "volratio": round(vr, 2),
-            "ret20": round(float(p.iloc[-1] / p.iloc[-21] - 1) * 100, 1),
+            "volratio": num(vr, 2),
+            "ret20": num(p.iloc[-1] / p.iloc[-21] - 1, 1, 100),
             "heavy": bool(vr > 1.20 and p.iloc[-1] < p.iloc[-21]),   # 價跌且爆量
         })
     out["etfs"] = etfs
@@ -339,6 +401,65 @@ def rate_layer(close, volume, indices):
     return out, betas
 
 
+# ------------------------------------------------------------- 週輪動摘要
+ROTATION_DAYS = 5      # 一週的交易日數
+
+
+def rotation_digest(scores):
+    """
+    這週資金往哪輪、從哪輪出。
+
+    分數是橫斷面名次，所以「分數變化」天生就是零和的——有人上去必有人下來，
+    這正好是輪動要看的東西（絕對漲跌看大盤環境列，不看這裡）。
+
+    狀態跨越（中性→啟動、啟動→衰竭之類）比分數變化更值得看：分數動 3 分
+    可能只是雜訊，但跨過門檻代表它換了一個處境。
+    """
+    if len(scores) < ROTATION_DAYS + 1:
+        return None
+
+    cur, prev = scores.iloc[-1], scores.iloc[-1 - ROTATION_DAYS]
+    rank_cur = cur.rank(ascending=False, na_option="keep")
+    rank_prev = prev.rank(ascending=False, na_option="keep")
+
+    rows = []
+    for name in scores.columns:
+        if pd.isna(cur[name]) or pd.isna(prev[name]):
+            continue
+        s_cur, s_prev = float(cur[name]), float(prev[name])
+        st_cur, st_prev = classify(s_cur), classify(s_prev)
+        rows.append({
+            "name": name,
+            "score": round(s_cur, 1),
+            "chg": round(s_cur - s_prev, 1),
+            "rank": int(rank_cur[name]),
+            # 名次變動取正號為「上升」，跟直覺一致（第 8 名→第 3 名 = +5）
+            "rank_chg": int(rank_prev[name] - rank_cur[name]),
+            "state": st_cur,
+            "state_prev": st_prev,
+            "crossed": st_cur != st_prev,
+        })
+
+    if not rows:
+        return None
+
+    order = {"加速": 3, "啟動": 2, "中性": 1, "衰竭": 0}
+    ups = [r for r in rows if r["crossed"] and order[r["state"]] > order[r["state_prev"]]]
+    downs = [r for r in rows if r["crossed"] and order[r["state"]] < order[r["state_prev"]]]
+
+    by_chg = sorted(rows, key=lambda r: -r["chg"])
+    return {
+        "window_days": ROTATION_DAYS,
+        "from_date": scores.index[-1 - ROTATION_DAYS].strftime("%Y-%m-%d"),
+        "to_date": scores.index[-1].strftime("%Y-%m-%d"),
+        "inflow": [r for r in by_chg if r["chg"] > 0][:5],
+        "outflow": [r for r in reversed(by_chg) if r["chg"] < 0][:5],
+        "upgrades": sorted(ups, key=lambda r: -r["chg"]),
+        "downgrades": sorted(downs, key=lambda r: r["chg"]),
+        "all": by_chg,
+    }
+
+
 # --------------------------------------------------------------- 歷史存檔
 def write_history(scores, mkt):
     """
@@ -369,7 +490,8 @@ def write_history(scores, mkt):
         },
     }
     (HERE / "history.json").write_text(
-        json.dumps(hist, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
+        json.dumps(hist, ensure_ascii=False, separators=(",", ":"), allow_nan=False),
+        encoding="utf-8"
     )
     log(f"✅ 已寫出 history.json（{len(tail)} 個交易日 × {len(tail.columns)} 個主題）")
 
@@ -485,10 +607,11 @@ def main():
             "score_prev": round(float(s.iloc[-2]), 1),
             "state": classify(cur),
             "signal": signal,
-            "rs20": round(float(metrics[name]["rs20"].iloc[-1]) * 100, 1),
-            "roc20": round(float(metrics[name]["roc20"].iloc[-1]) * 100, 1),
-            "breadth": round(float(metrics[name]["breadth"].iloc[-1]) * 100),
-            "volratio": round(vr, 2),
+            "rs20": num(metrics[name]["rs20"].iloc[-1], 1, 100),
+            "roc20": num(metrics[name]["roc20"].iloc[-1], 1, 100),
+            "roc60": num(metrics[name]["roc60"].iloc[-1], 1, 100),
+            "breadth": num(metrics[name]["breadth"].iloc[-1], 0, 100),
+            "volratio": num(vr, 2),
             "n": len(valid[name]),
             "tickers": valid[name],
             "series": [round(float(v), 1) for v in weekly.values],
@@ -510,17 +633,28 @@ def main():
 
     cards.sort(key=lambda c: -c["score"])
 
+    # ---- 週輪動摘要 ----
+    rot = rotation_digest(scores)
+    if rot:
+        head = "；".join(f"{r['name']} {r['chg']:+.1f}" for r in rot["inflow"][:3])
+        log(f"週輪動（{rot['from_date']}→{rot['to_date']}）輪入前三：{head or '無'}"
+            + (f" · 狀態升級 {len(rot['upgrades'])} 個"
+               f"／降級 {len(rot['downgrades'])} 個" if rot["upgrades"] or rot["downgrades"] else ""))
+
     out = {
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "data_date": latest_date.strftime("%Y-%m-%d"),
         "benchmark": BENCH,
+        "scoring_profile": PROFILE,     # 哪一組權重算出來的，跨版本比對時要看這個
         "thresholds": {"enter": ENTER, "strong": STRONG, "weak": WEAK},
         "market": market,
         "rates": rates,
+        "rotation": rot,
         "themes": cards,
     }
+    # allow_nan=False：寧可在這裡炸掉，也不要靜靜寫出瀏覽器讀不了的 JSON
     (HERE / "data.json").write_text(
-        json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8"
+        json.dumps(out, ensure_ascii=False, indent=1, allow_nan=False), encoding="utf-8"
     )
     log(f"✅ 已寫出 data.json（{len(cards)} 個主題）")
 

@@ -65,6 +65,36 @@
   .hval{font-size:15px;font-weight:700;white-space:nowrap}
   .hbox{height:52px;position:relative}
 
+  /* 週輪動：發散長條圖。分數是橫斷面名次，變化天生零和，
+     以中線為基準往兩側長最直觀——右邊輪入、左邊輪出。 */
+  .rotwrap{background:var(--card);border:1px solid var(--line);border-radius:12px;
+           padding:18px 22px 14px}
+  .rotrow{display:grid;grid-template-columns:150px 1fr 132px;align-items:center;
+          gap:12px;padding:4px 0}
+  .rotname{font-size:12.5px;color:var(--dim);text-align:right;
+           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rotbar{position:relative;height:19px}
+  .rotbar:before{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;
+                 width:1px;background:var(--line)}
+  .rotbar i{position:absolute;top:3px;height:13px;display:block}
+  .rotval{font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .rotval .rk{color:var(--faint);margin-left:7px}
+  .rothead{display:grid;grid-template-columns:150px 1fr 132px;gap:12px;
+           font-size:11.5px;color:var(--faint);padding-bottom:8px;margin-bottom:6px;
+           border-bottom:1px solid var(--line)}
+  .rotaxis{display:flex;justify-content:space-between}
+
+  .rotev{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+  @media(max-width:900px){ .rotev{grid-template-columns:1fr} }
+  .rotcard{background:var(--card);border:1px solid var(--line);border-radius:12px;
+           padding:14px 18px}
+  .rotcard.up{border-left:3px solid var(--up)}
+  .rotcard.down{border-left:3px solid var(--down)}
+  .rotcard h4{font-size:12.5px;font-weight:600;color:var(--dim);margin-bottom:9px}
+  .rotev .item{font-size:13px;padding:4px 0;color:var(--txt)}
+  .rotev .item span{color:var(--faint);font-size:12px;margin-left:6px}
+  .rotev .none{color:var(--faint);font-size:12.5px;padding:4px 0}
+
   .cmphint{color:var(--faint);font-size:12px;margin-bottom:12px;line-height:1.6}
   .cmppick{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
   .cmpchip{font-size:12px;padding:5px 12px;border-radius:20px;cursor:pointer;
@@ -174,6 +204,7 @@
   <div id="err"></div>
   <div class="viewtabs">
     <button class="vtab on" data-v="theme">主題動能</button>
+    <button class="vtab" data-v="rot">週輪動重點</button>
     <button class="vtab" data-v="hist">歷史走勢</button>
     <button class="vtab" data-v="chain">台廠供應鏈推估</button>
   </div>
@@ -196,6 +227,12 @@
   </div>
   <div class="kpis" id="kpis"></div>
   <div class="grid" id="grid"></div>
+  </div>
+
+  <div id="viewRot" style="display:none">
+    <div class="note" id="rotNote"></div>
+    <div class="rotev" id="rotEvents"></div>
+    <div class="rotwrap" id="rotChart"></div>
   </div>
 
   <div id="viewHist" style="display:none">
@@ -274,7 +311,11 @@ function colorOf(c){
   return getCSS('--mid');
 }
 const getCSS = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const sign = n => (n >= 0 ? "+" : "") + n.toFixed(1);
+// 數值可能是 null（例如某天全市場成交量為 0，volratio 就算不出來），
+// 所有格式化都要先擋掉，否則整個卡片渲染會中斷。
+const nn = v => v !== null && v !== undefined && isFinite(v);
+const sign = n => !nn(n) ? "—" : (n >= 0 ? "+" : "") + n.toFixed(1);
+const fx = (v, d) => !nn(v) ? "—" : v.toFixed(d);
 
 let mktChart = null;
 
@@ -406,6 +447,67 @@ function renderRates(){
     </div>`;
 }
 
+// 週輪動重點。資料由 radar.py 的 rotation_digest 算好，前端只負責呈現。
+function renderRotation(){
+  const r = DATA.rotation;
+  const note = document.getElementById("rotNote");
+  const ev = document.getElementById("rotEvents");
+  const box = document.getElementById("rotChart");
+
+  if (!r) {
+    note.innerHTML = `<b>尚無週輪動資料。</b>歷史長度不足 ${6} 個交易日，
+      或 data.json 為舊版格式，請重新執行 <code>python radar.py</code>。`;
+    ev.innerHTML = ""; box.innerHTML = ""; return;
+  }
+
+  note.innerHTML = `<b>${r.from_date} → ${r.to_date}（${r.window_days} 個交易日）</b><br>
+    分數是同日橫斷面名次，所以變化天生零和——有主題上去必有主題下來，
+    這正好是「輪動」要看的東西。<b>絕對漲跌請看「主題動能」頁的大盤環境列</b>，
+    這裡回答的是資金在主題之間怎麼搬，不是市場整體漲跌。`;
+
+  // 狀態跨越比分數變化更值得看：動 3 分可能只是雜訊，
+  // 但跨過門檻代表這個主題換了處境。
+  const item = x => `<div class="item">${x.name}
+    <span>${x.state_prev} → ${x.state}　${sign(x.chg)} 分</span></div>`;
+  ev.innerHTML = `
+    <div class="rotcard up">
+      <h4>狀態升級（${r.upgrades.length}）</h4>
+      ${r.upgrades.length ? r.upgrades.map(item).join("")
+        : '<div class="none">本週無主題升級</div>'}
+    </div>
+    <div class="rotcard down">
+      <h4>狀態降級（${r.downgrades.length}）</h4>
+      ${r.downgrades.length ? r.downgrades.map(item).join("")
+        : '<div class="none">本週無主題降級</div>'}
+    </div>`;
+
+  // 發散長條圖：以中線為基準，右側輪入、左側輪出。
+  // 用同一個 max 縮放兩側，長度才可以互相比較。
+  const rows = r.all || [];
+  const max = Math.max(1, ...rows.map(x => Math.abs(x.chg)));
+  const up = getCSS('--up'), down = getCSS('--down');
+
+  box.innerHTML = `
+    <div class="rothead">
+      <div style="text-align:right">主題</div>
+      <div class="rotaxis"><span>← 輪出</span><span>分數變化</span><span>輪入 →</span></div>
+      <div>變化 · 名次</div>
+    </div>` + rows.map(x => {
+    const w = Math.abs(x.chg) / max * 50;          // 單側最多佔一半寬度
+    const pos = x.chg >= 0;
+    const col = pos ? up : down;
+    const bar = `<i style="${pos ? `left:50%` : `right:50%`};width:${w}%;
+      background:${col};border-radius:${pos ? '0 3px 3px 0' : '3px 0 0 3px'}"></i>`;
+    const rk = x.rank_chg === 0 ? `<span class="rk">名次持平</span>`
+      : `<span class="rk">名次${x.rank_chg > 0 ? '+' : ''}${x.rank_chg}</span>`;
+    return `<div class="rotrow" title="${x.name}：目前 ${x.score} 分（第 ${x.rank} 名）">
+      <div class="rotname">${x.name}</div>
+      <div class="rotbar">${bar}</div>
+      <div class="rotval"><b class="${pos ? 'pos' : 'neg'}">${sign(x.chg)}</b>${rk}</div>
+    </div>`;
+  }).join("");
+}
+
 // 利率敏感度的顏色門檻。beta 越負代表殖利率上升時跌得越凶。
 function rateCls(b){
   if (b === null || b === undefined) return '';
@@ -449,9 +551,11 @@ function render(){
       </div>
       <div class="chartbox"><canvas id="cv${i}"></canvas></div>
       <div class="stats">
-        <span>相對強度20D <b class="${c.rs20>=0?'pos':'neg'}">${sign(c.rs20)}%</b></span>
-        <span>廣度 <b>${c.breadth}%</b></span>
-        <span>量比 <b>${c.volratio.toFixed(2)}×</b></span>
+        <span>相對強度20D <b class="${!nn(c.rs20)?'na':c.rs20>=0?'pos':'neg'}">${sign(c.rs20)}%</b></span>
+        <span title="主題指數自身的 20 日報酬，絕對值。分數是同日橫斷面排名（平均恆為 50），全部主題同步下跌時最抗跌者仍會拿到高分，要對照這個欄位才知道實際漲跌。">
+          20日報酬 <b class="${!nn(c.roc20)?'na':c.roc20>=0?'pos':'neg'}">${sign(c.roc20)}%</b></span>
+        <span>廣度 <b class="${nn(c.breadth)?'':'na'}">${nn(c.breadth)?c.breadth+'%':'—'}</b></span>
+        <span>量比 <b class="${nn(c.volratio)?'':'na'}">${nn(c.volratio)?fx(c.volratio,2)+'×':'—'}</b></span>
         <span>${c.n} 檔</span>
         ${c.rate ? `<span title="主題日報酬對 10Y 殖利率日變動的迴歸斜率，%/bp">
           利率敏感 <b class="${rateCls(c.rate.beta)}">${c.rate.beta.toFixed(3)}</b>
@@ -711,10 +815,12 @@ document.querySelectorAll(".vtab").forEach(b => b.onclick = () => {
   b.classList.add("on");
   const v = b.dataset.v;
   document.getElementById("viewTheme").style.display = v === "theme" ? "" : "none";
+  document.getElementById("viewRot").style.display   = v === "rot"   ? "" : "none";
   document.getElementById("viewHist").style.display  = v === "hist"  ? "" : "none";
   document.getElementById("viewChain").style.display = v === "chain" ? "" : "none";
   if (v === "chain") renderChain();
   if (v === "hist") renderHist();
+  if (v === "rot") renderRotation();
 });
 
 fetch("twchain.json?" + Date.now())
