@@ -49,6 +49,7 @@ jobs:
         with:
           path: |
             flows.json
+            flows_history.json
             twchain.json
             twrev_history.json
           key: cache-${{ github.run_id }}

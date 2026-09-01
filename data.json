@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-01T02:31:40+00:00",
+ "generated_at": "2026-09-01T06:59:27+00:00",
  "data_date": "2026-08-31",
  "benchmark": "SPY",
  "scoring_profile": "legacy",
@@ -157,7 +157,7 @@
   "etfs": [
    {
     "t": "TLT",
-    "volratio": 0.99,
+    "volratio": 1.0,
     "ret20": 0.4,
     "heavy": false
    },
@@ -751,7 +751,7 @@
    "roc20": 12.6,
    "roc60": -0.2,
    "breadth": 100,
-   "volratio": 1.04,
+   "volratio": 1.05,
    "n": 6,
    "tickers": [
     "SLB",
@@ -959,7 +959,7 @@
    "roc20": 16.0,
    "roc60": -12.3,
    "breadth": 100,
-   "volratio": 0.7,
+   "volratio": 0.71,
    "n": 6,
    "tickers": [
     "CCJ",
@@ -1931,7 +1931,7 @@
    "roc20": -2.9,
    "roc60": -9.7,
    "breadth": 0,
-   "volratio": 0.56,
+   "volratio": 0.57,
    "n": 7,
    "tickers": [
     "AMAT",
@@ -2002,7 +2002,7 @@
    "roc20": -7.1,
    "roc60": -13.0,
    "breadth": 0,
-   "volratio": 0.67,
+   "volratio": 0.66,
    "n": 5,
    "tickers": [
     "ETN",

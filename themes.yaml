@@ -24,6 +24,13 @@ insider_lookback_days: 90   # 內部人交易回看幾天
 scoring:
   profile: legacy
 
+# 重疊成分股的處理方式。跑 python _audit_overlap.py 看目前重疊狀況與取捨。
+#   none   — 預設。每檔股票在所屬的每個主題裡都算完整一份權重。
+#   dilute — 一檔股票隸屬 N 個主題時，權重降為 1/N。可降低主題之間
+#            因共用持股而產生的假性同步，代價是 history.json 的歷史
+#            分數會全段不可比。
+overlap_policy: none
+
 benchmark: SPY          # 相對強度的比較基準
 lookback_days: 750      # 抓多久的歷史資料（日曆天）
                         # 200 日均線 + 52 週高點需要約 250 個交易日才算得出來，

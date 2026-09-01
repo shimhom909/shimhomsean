@@ -67,6 +67,11 @@ WEIGHT_PROFILES = {
     },
 }
 
+OVERLAP_POLICY = CFG.get("overlap_policy", "none")
+if OVERLAP_POLICY not in ("none", "dilute"):
+    raise SystemExit(f"themes.yaml 的 overlap_policy 只能是 none/dilute，"
+                     f"收到: {OVERLAP_POLICY}")
+
 SCORING = CFG.get("scoring", {}) or {}
 PROFILE = SCORING.get("profile", "legacy")
 if PROFILE not in WEIGHT_PROFILES:
@@ -141,13 +146,41 @@ def fetch_prices(tickers):
 
 
 # ------------------------------------------------------ 主題指數與原始指標
-def build_theme_index(close, tickers):
-    """等權重日報酬複合，起始 = 100。"""
+def build_theme_index(close, tickers, weights=None):
+    """
+    等權重日報酬複合，起始 = 100。
+
+    weights 給定時改用加權平均（overlap_policy: dilute 會用到）。
+    兩種情況都只對「當天有報價的成分股」正規化，避免新上市股或
+    當天缺資料的成分股把整個主題拖下來。
+    """
     sub = close[tickers].dropna(how="all")
     rets = sub.pct_change(fill_method=None)
-    # 每日對「當天有報價的成分股」取平均，避免新上市股拖累
-    eq = rets.mean(axis=1, skipna=True).fillna(0.0)
+
+    if weights is None:
+        eq = rets.mean(axis=1, skipna=True).fillna(0.0)
+    else:
+        w = pd.Series({t: float(weights.get(t, 1.0)) for t in tickers})
+        wm = rets.notna().mul(w, axis=1)            # 當天有報價者才給權重
+        denom = wm.sum(axis=1).replace(0, np.nan)   # 逐日重新正規化
+        eq = (rets.fillna(0.0) * wm).sum(axis=1).div(denom).fillna(0.0)
+
     return 100.0 * (1.0 + eq).cumprod()
+
+
+def dilution_weights(themes):
+    """
+    一檔股票隸屬 N 個主題時，在每個主題裡的權重降為 1/N。
+
+    用意是避免共用成分股讓多個主題的指數天然同步、人為推高彼此相關性。
+    代價是會改變所有含重疊個股的主題指數，連帶改變橫斷面名次——
+    也就是 history.json 的歷史分數會全段不可比，所以預設不啟用。
+    """
+    cnt = {}
+    for conf in themes.values():
+        for t in conf["tickers"]:
+            cnt[t] = cnt.get(t, 0) + 1
+    return {t: 1.0 / n for t, n in cnt.items()}
 
 
 def raw_metrics(idx, close, volume, tickers, bench_idx):
@@ -512,12 +545,19 @@ def main():
 
     indices, metrics, valid = {}, {}, {}
 
+    # 重疊個股的權重稀釋。預設 none（每檔在每個主題都算完整一份），
+    # 切換成 dilute 會改變歷史分數，詳見 _audit_overlap.py 的說明。
+    dweights = dilution_weights(themes) if OVERLAP_POLICY == "dilute" else None
+    if dweights:
+        shared = sum(1 for w in dweights.values() if w < 1.0)
+        log(f"重疊政策: dilute（{shared} 檔重疊個股權重已稀釋）")
+
     for name, conf in themes.items():
         have = [t for t in conf["tickers"] if t in close.columns]
         if len(have) < 4:
             log(f"⚠️  「{name}」有效成分股只剩 {len(have)} 檔，跳過")
             continue
-        idx = build_theme_index(close, have)
+        idx = build_theme_index(close, have, dweights)
         indices[name] = idx
         metrics[name] = raw_metrics(idx, close, volume, have, bench_idx)
         valid[name] = have

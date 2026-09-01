@@ -24,6 +24,8 @@ import yaml
 HERE = Path(__file__).parent
 CFG = yaml.safe_load((HERE / "themes.yaml").read_text(encoding="utf-8"))
 OUT = HERE / "flows.json"
+HIST = HERE / "flows_history.json"
+HIST_KEEP = 104          # 每週一筆，保留約兩年
 
 # SEC 規定必須表明身分，請在 themes.yaml 填自己的 email
 UA = CFG.get("sec_user_agent", "Personal Research your-email@example.com")
@@ -298,6 +300,43 @@ def main():
     OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
     ok = sum(1 for v in out_themes.values() if v["insider_net"] is not None)
     log(f"✅ 已寫出 flows.json（內部人 {ok} 個主題、融券 {len(shorts)} 檔）")
+
+    save_history(out_themes)
+
+
+def save_history(out_themes):
+    """
+    累積每次抓取的快照。
+
+    這份歷史非累積不可，跟 radar.py 的 history.json 是相反的情況：
+    那邊每次都重抓 750 天價格、整段重算，所以不依賴累積；但內部人交易
+    （SEC Form 4）與融券的資料源都只提供「當期」狀態，查不到任意過去
+    日期，錯過一次就永遠補不回來——跟 twrev_history.json 同一類問題。
+
+    沒有這份歷史，就無法回答「內部人買賣／融券變化對主題未來分數有沒有
+    預測力」，因為那需要成對的 (當時的流向, 之後的分數變化) 觀測。
+    只存檢驗用得到的三個欄位，檔案才不會膨脹。
+    """
+    hist = {}
+    if HIST.exists():
+        try:
+            hist = json.loads(HIST.read_text(encoding="utf-8"))
+        except Exception:
+            log("⚠️  flows_history.json 毀損，重新建立")
+
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")
+    hist[stamp] = {
+        name: {"insider_net": v["insider_net"],
+               "short_chg": v["short_chg"],
+               "short_pct": v["short_pct"]}
+        for name, v in out_themes.items()
+    }
+    for k in sorted(hist)[:-HIST_KEEP]:      # 只留最近 HIST_KEEP 筆
+        del hist[k]
+
+    HIST.write_text(json.dumps(hist, ensure_ascii=False, separators=(",", ":"),
+                               allow_nan=False), encoding="utf-8")
+    log(f"✅ 已寫出 flows_history.json（累積 {len(hist)} 期快照）")
 
 
 if __name__ == "__main__":
