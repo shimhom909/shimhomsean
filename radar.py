@@ -27,6 +27,9 @@ RATES = CFG.get("rate_watch", {}) or {}
 
 HIST_DAYS = 250     # history.json 保留幾個交易日
 SPARK_WEEKS = 30    # 大盤狀態列的迷你走勢圖顯示幾週
+MIN_TICKERS = 4     # 主題有效成分股低於此數就整個略過（見 main()）
+
+DROPPED = []        # fetch_prices 剔除掉的代號，供健康度檢查用
 
 # ---------------------------------------------------------------- 動能因子
 #
@@ -139,6 +142,10 @@ def fetch_prices(tickers):
     dropped = sorted(set(close.columns) - set(keep))
     if dropped:
         log(f"⚠️  資料不足或代號無效，已剔除: {', '.join(dropped)}")
+    # 存到模組層級給健康度檢查用。刻意不改回傳值的形狀——
+    # _compare_profiles.py 等呼叫端都預期兩個回傳值。
+    global DROPPED
+    DROPPED = dropped
 
     close = close[keep].ffill()
     volume = volume[keep].fillna(0)
@@ -434,6 +441,144 @@ def rate_layer(close, volume, indices):
     return out, betas
 
 
+# ------------------------------------------------------------- 系統健康度
+# 把「這個系統現在健不健康」變成可自動監控的指標，而不是靠人每次跑完
+# 去讀 log。這裡只放能自動判定達標與否的東西——每一項都要有明確目標值，
+# 沒有目標就只是數字牆，看久了會麻痺。
+
+def check(label, value, target, direction, unit="", note="", near=0.15):
+    """
+    一項健康度檢查。
+
+    direction: "gte" = 越大越好（value >= target 為達標）
+               "lte" = 越小越好（value <= target 為達標）
+    near: 距離目標多少比例內算「接近」，差一點點跟差很多要分得出來。
+    value 為 None 代表沒資料——那不算未達，是另一種狀態，不能混為一談。
+    """
+    if value is None:
+        status = "nodata"
+        pct = 0.0
+    elif direction == "gte":
+        status = "ok" if value >= target else (
+            "near" if target > 0 and value >= target * (1 - near) else "bad")
+        pct = min(1.0, value / target) if target else 1.0
+    else:
+        status = "ok" if value <= target else (
+            "near" if value <= target * (1 + near) else "bad")
+        pct = min(1.0, target / value) if value else 1.0
+    return {"label": label, "value": num(value, 2), "target": target,
+            "dir": direction, "unit": unit, "status": status,
+            "pct": num(pct * 100, 0), "note": note}
+
+
+def _file_age_days(path):
+    """檔案內 generated_at 距今幾天。抓不到就回 None（無資料，不是 0）。"""
+    if not path.exists():
+        return None, None
+    try:
+        d = json.loads(path.read_text(encoding="utf-8"))
+        stamp = d.get("generated_at")
+        if not stamp:
+            return None, d
+        gen = dt.datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+        if gen.tzinfo is None:
+            gen = gen.replace(tzinfo=dt.timezone.utc)
+        age = (dt.datetime.now(dt.timezone.utc) - gen).total_seconds() / 86400
+        return age, d
+    except Exception:
+        return None, None
+
+
+def health_report(themes, valid, cards, latest_date, hist_len):
+    """系統規模 + 資料品質。每一項都對照明確目標值。"""
+    sizes = sorted(len(v) for v in valid.values())
+    med = sizes[len(sizes) // 2] if sizes else 0
+    at_floor = [n for n, v in valid.items() if len(v) == MIN_TICKERS]
+
+    declared = {t for c in themes.values() for t in c["tickers"]}
+    used = {t for v in valid.values() for t in v}
+    valid_rate = len(used) / len(declared) * 100 if declared else None
+
+    # 資料新鮮度：交易日與今天的差。週末假日會自然拉高，所以目標放寬到 4 天。
+    age_days = (dt.datetime.now(dt.timezone.utc).date()
+                - latest_date.date()).days
+
+    flows_age, fl = _file_age_days(HERE / "flows.json")
+    chain_age, ch = _file_age_days(HERE / "twchain.json")
+
+    # 覆蓋率：有多少主題真的拿得到這些欄位（不是全部主題都有）
+    def cover(fn):
+        if not cards:
+            return None
+        return sum(1 for c in cards if fn(c)) / len(cards) * 100
+
+    ins_cov = cover(lambda c: (c.get("flows") or {}).get("insider_net") is not None)
+    sh_cov = cover(lambda c: (c.get("flows") or {}).get("short_pct") is not None)
+    rate_cov = cover(lambda c: c.get("rate") is not None)
+
+    fh = HERE / "flows_history.json"
+    fh_periods = None
+    if fh.exists():
+        try:
+            fh_periods = len(json.loads(fh.read_text(encoding="utf-8")))
+        except Exception:
+            pass
+
+    groups = [
+        {
+            "title": "資料新鮮度",
+            "hint": "資料多久沒更新。過期的訊號比沒有訊號更危險——"
+                    "看起來還在動，其實是舊的。",
+            "checks": [
+                check("行情資料落後", age_days, 4, "lte", "天",
+                      f"最新交易日 {latest_date:%Y-%m-%d}"),
+                check("資金流向資料年齡", flows_age, 14, "lte", "天",
+                      "flows.py 每週二執行，超過兩週代表排程或快取出問題"),
+                check("台廠營收資料年齡", chain_age, 45, "lte", "天",
+                      "twrev.py 每月 11–15 日執行"),
+            ],
+        },
+        {
+            "title": "主題覆蓋度",
+            "hint": f"成分股太少的主題不穩定：低於 {MIN_TICKERS} 檔會被整個略過，"
+                    f"剛好卡在 {MIN_TICKERS} 檔的再掉一檔就會消失。",
+            "checks": [
+                check("成分股中位數", med, 6, "gte", "檔",
+                      f"最少 {sizes[0] if sizes else 0} 檔／最多 {sizes[-1] if sizes else 0} 檔"),
+                check("卡門檻主題數", len(at_floor), 0, "lte", "個",
+                      "、".join(at_floor) if at_floor else "無"),
+                check("代號有效率", valid_rate, 95, "gte", "%",
+                      f"已剔除 {len(DROPPED)} 檔：{'、'.join(DROPPED) if DROPPED else '無'}"),
+            ],
+        },
+        {
+            "title": "欄位覆蓋率",
+            "hint": "有多少主題真的拿得到這些資料。覆蓋率低的欄位，"
+                    "在儀表板上看到的只是少數主題的狀況。",
+            "checks": [
+                check("內部人資料覆蓋", ins_cov, 80, "gte", "%"),
+                check("融券資料覆蓋", sh_cov, 80, "gte", "%"),
+                check("利率曝險覆蓋", rate_cov, 90, "gte", "%"),
+                check("流向歷史累積", fh_periods, 30, "gte", "期",
+                      "累積滿 30 期後 _test_flows_predictive.py 才能做多期檢驗"),
+            ],
+        },
+    ]
+
+    return {
+        "scale": {
+            "themes": len(valid),
+            "themes_declared": len(themes),
+            "tickers": len(used),
+            "tickers_declared": len(declared),
+            "hist_days": hist_len,
+            "tw_suppliers": len((ch or {}).get("suppliers", {})) or None,
+            "tw_us": len((ch or {}).get("us", {})) or None,
+        },
+        "groups": groups,
+    }
+
+
 # ------------------------------------------------------------- 週輪動摘要
 ROTATION_DAYS = 5      # 一週的交易日數
 
@@ -554,7 +699,7 @@ def main():
 
     for name, conf in themes.items():
         have = [t for t in conf["tickers"] if t in close.columns]
-        if len(have) < 4:
+        if len(have) < MIN_TICKERS:
             log(f"⚠️  「{name}」有效成分股只剩 {len(have)} 檔，跳過")
             continue
         idx = build_theme_index(close, have, dweights)
@@ -673,6 +818,17 @@ def main():
 
     cards.sort(key=lambda c: -c["score"])
 
+    # ---- 系統健康度 ----
+    health = health_report(themes, valid, cards, latest_date,
+                           len(scores.tail(HIST_DAYS)))
+    bad = [c["label"] for g in health["groups"] for c in g["checks"]
+           if c["status"] == "bad"]
+    nod = [c["label"] for g in health["groups"] for c in g["checks"]
+           if c["status"] == "nodata"]
+    log(f"系統健康度: 未達 {len(bad)} 項"
+        + (f"（{'、'.join(bad)}）" if bad else "")
+        + (f" · 無資料 {len(nod)} 項" if nod else ""))
+
     # ---- 週輪動摘要 ----
     rot = rotation_digest(scores)
     if rot:
@@ -690,6 +846,7 @@ def main():
         "market": market,
         "rates": rates,
         "rotation": rot,
+        "health": health,
         "themes": cards,
     }
     # allow_nan=False：寧可在這裡炸掉，也不要靜靜寫出瀏覽器讀不了的 JSON

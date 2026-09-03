@@ -95,6 +95,40 @@
   .rotev .item span{color:var(--faint);font-size:12px;margin-left:6px}
   .rotev .none{color:var(--faint);font-size:12.5px;padding:4px 0}
 
+  /* 系統健康度：大數字 + 目標線 + 達標徽章。
+     每一項都必須有明確目標值——沒有目標的數字牆看久了會麻痺。 */
+  .sec{margin-bottom:22px}
+  .sechead{display:flex;align-items:center;gap:12px;margin-bottom:12px;
+           padding-left:11px;border-left:3px solid var(--mid)}
+  .sectitle{font-size:14px;font-weight:600;letter-spacing:.5px}
+  .sechint{color:var(--faint);font-size:12px;line-height:1.6;
+           margin:-6px 0 12px 14px}
+  .secright{margin-left:auto;color:var(--faint);font-size:11.5px}
+
+  .scale{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+         gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;
+         overflow:hidden}
+  .scale > div{background:var(--card);padding:14px 18px}
+  .scale .l{color:var(--faint);font-size:11.5px;letter-spacing:.5px;margin-bottom:7px}
+  .scale .v{font-size:26px;font-weight:700;line-height:1;
+            font-variant-numeric:tabular-nums}
+  .scale .s{color:var(--faint);font-size:11.5px;margin-top:6px}
+
+  .hgridk{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+  .kcard{background:var(--card);border:1px solid var(--line);border-radius:10px;
+         padding:14px 16px 12px}
+  .ktop{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .klab{color:var(--dim);font-size:12.5px;line-height:1.4}
+  .kbadge{font-size:11px;padding:2px 8px;border-radius:5px;white-space:nowrap;
+          font-weight:600;border:1px solid transparent}
+  .kval{font-size:27px;font-weight:700;margin:9px 0 3px;line-height:1;
+        font-variant-numeric:tabular-nums}
+  .kval small{font-size:13px;font-weight:500;color:var(--dim);margin-left:3px}
+  .ktar{color:var(--faint);font-size:11.5px}
+  .kbar{height:3px;background:#1f2937;border-radius:2px;overflow:hidden;margin:9px 0 7px}
+  .kbar i{display:block;height:100%;border-radius:2px}
+  .knote{color:var(--faint);font-size:11.5px;line-height:1.5}
+
   .cmphint{color:var(--faint);font-size:12px;margin-bottom:12px;line-height:1.6}
   .cmppick{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
   .cmpchip{font-size:12px;padding:5px 12px;border-radius:20px;cursor:pointer;
@@ -207,6 +241,7 @@
     <button class="vtab" data-v="rot">週輪動重點</button>
     <button class="vtab" data-v="hist">歷史走勢</button>
     <button class="vtab" data-v="chain">台廠供應鏈推估</button>
+    <button class="vtab" data-v="health">系統健康</button>
   </div>
 
   <div id="viewTheme">
@@ -252,6 +287,11 @@
         <div class="cmpbox"><canvas id="cmpcv"></canvas></div>
       </div>
     </div>
+  </div>
+
+  <div id="viewHealth" style="display:none">
+    <div class="note" id="healthNote"></div>
+    <div id="healthBody"></div>
   </div>
 
   <div id="viewChain" style="display:none">
@@ -445,6 +485,83 @@ function renderRates(){
     <div class="mktrow ratio">
       <span class="na">避險工具實測 beta（%/bp，正值＝殖利率漲時上漲）：</span>${probe}
     </div>`;
+}
+
+// 系統健康度。把原本只寫在 log 裡、要人去讀的東西變成可監控的頁面。
+const HSTATUS = {
+  ok:     {t:"達標",   c:'--up'},
+  near:   {t:"接近",   c:'--warn'},
+  bad:    {t:"未達",   c:'--down'},
+  nodata: {t:"無資料", c:'--faint'},
+};
+
+// 整數就不顯示小數點；只有真的有小數才留一位
+const hfmt = v => !nn(v) ? "—"
+  : (Math.abs(v - Math.round(v)) < 0.05 ? String(Math.round(v)) : v.toFixed(1));
+
+function renderHealth(){
+  const h = DATA.health;
+  const note = document.getElementById("healthNote");
+  const body = document.getElementById("healthBody");
+  if (!h) {
+    note.innerHTML = `<b>尚無健康度資料。</b>data.json 為舊版格式，
+      請重新執行 <code>python radar.py</code>。`;
+    body.innerHTML = ""; return;
+  }
+
+  const flat = h.groups.flatMap(g => g.checks);
+  const bad = flat.filter(c => c.status === "bad").length;
+  const near = flat.filter(c => c.status === "near").length;
+  const nod = flat.filter(c => c.status === "nodata").length;
+  note.innerHTML = `<b>${flat.length} 項檢查　·
+    未達 ${bad}　接近 ${near}　無資料 ${nod}</b><br>
+    這頁監控的是「資料本身可不可信」，不是行情。<b>過期或殘缺的資料比沒有資料更危險</b>——
+    儀表板看起來照常運作，實際上你在看的是舊訊號。`;
+
+  const s = h.scale;
+  const cell = (l, v, sub) => `<div><div class="l">${l}</div>
+    <div class="v">${nn(v) ? v.toLocaleString() : '—'}</div>
+    <div class="s">${sub || ''}</div></div>`;
+
+  let html = `
+    <div class="sec">
+      <div class="sechead"><div class="sectitle">系統規模</div>
+        <div class="secright">資料截至 ${DATA.data_date}</div></div>
+      <div class="scale">
+        ${cell("有效主題", s.themes, nn(s.themes_declared) ? `設定 ${s.themes_declared} 個` : '')}
+        ${cell("追蹤標的", s.tickers, nn(s.tickers_declared) ? `設定 ${s.tickers_declared} 檔` : '')}
+        ${cell("歷史交易日", s.hist_days, "history.json 深度")}
+        ${cell("台廠供應商", s.tw_suppliers, "twchain.json")}
+        ${cell("供應鏈推估標的", s.tw_us, "對應美股")}
+      </div>
+    </div>`;
+
+  html += h.groups.map(g => {
+    const cards = g.checks.map(c => {
+      const st = HSTATUS[c.status] || HSTATUS.nodata;
+      const col = getCSS(st.c);
+      const cmp = c.dir === "gte" ? "≥" : "≤";
+      return `<div class="kcard">
+        <div class="ktop">
+          <div class="klab">${c.label}</div>
+          <div class="kbadge" style="color:${col};border-color:${col}55;
+            background:${col}14">${st.t}</div>
+        </div>
+        <div class="kval" style="color:${c.status==='nodata'?getCSS('--faint'):col}">
+          ${hfmt(c.value)}<small>${c.unit || ''}</small></div>
+        <div class="ktar">目標 ${cmp} ${c.target}${c.unit || ''}</div>
+        <div class="kbar"><i style="width:${nn(c.pct)?c.pct:0}%;background:${col}"></i></div>
+        ${c.note ? `<div class="knote">${c.note}</div>` : ''}
+      </div>`;
+    }).join("");
+    return `<div class="sec">
+      <div class="sechead"><div class="sectitle">${g.title}</div></div>
+      ${g.hint ? `<div class="sechint">${g.hint}</div>` : ''}
+      <div class="hgridk">${cards}</div>
+    </div>`;
+  }).join("");
+
+  body.innerHTML = html;
 }
 
 // 週輪動重點。資料由 radar.py 的 rotation_digest 算好，前端只負責呈現。
@@ -818,9 +935,11 @@ document.querySelectorAll(".vtab").forEach(b => b.onclick = () => {
   document.getElementById("viewRot").style.display   = v === "rot"   ? "" : "none";
   document.getElementById("viewHist").style.display  = v === "hist"  ? "" : "none";
   document.getElementById("viewChain").style.display = v === "chain" ? "" : "none";
+  document.getElementById("viewHealth").style.display = v === "health" ? "" : "none";
   if (v === "chain") renderChain();
   if (v === "hist") renderHist();
   if (v === "rot") renderRotation();
+  if (v === "health") renderHealth();
 });
 
 fetch("twchain.json?" + Date.now())
