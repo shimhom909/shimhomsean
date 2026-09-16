@@ -48,9 +48,20 @@ macro_ratios:
 # 債市壓力預警。
 # 目的是在債券被大量或持續拋售的當下就亮燈，而不是等主題動能自己跌破。
 # 殖利率指數(^開頭)沒有成交量，「大量」只能靠債券 ETF 的量能確認，兩者要並用。
+#
+# 「美債」和「聯準會」是兩種不同的驅動力，該用的避險工具也不同：
+#   美債（長端／期限溢酬）：財政供給、拍賣需求弱、外國買盤縮手，
+#     壓力集中在最長天期，是「30Y 相對 10Y」自己在走陡，
+#     短天期資產受影響最小，適合用長天期利率商品避險。
+#   聯準會（政策路徑預期）：CPI/PCE、FOMC 會後聲明改變降息/升息預期，
+#     壓力集中在中短天期，是「5Y 相對 3 個月期」在動，
+#     幾乎所有天期都會被牽動，適合等會議結果出來再動作而非搶在前面猜。
+# 原本只看「30Y − 13週」一條利差，兩種驅動力混在同一個訊號裡分不開；
+# 拆成兩條之後才看得出這次到底是哪一種在作用。
 rate_watch:
   y10: "^TNX"          # 10 年期殖利率
-  y30: "^TYX"          # 30 年期
+  y30: "^TYX"          # 30 年期，長端／期限溢酬端
+  y5: "^FVX"           # 5 年期，中天期，用來算聯準會政策預期端的斜率
   y_short: "^IRX"      # 13 週國庫券，拿來算期限利差
   bondvol: "^MOVE"     # 債市波動指數，等同債券版的 VIX
   etfs: [TLT, IEF]     # 有成交量，用來確認是否「大量」拋售
@@ -58,6 +69,28 @@ rate_watch:
   # 才知道哪些東西真的能抵銷利率風險、哪些只是名字聽起來像避險。
   hedge_probe: [GLD, UUP, SHV, XLU, XLP, TLT]
   beta_window: 120     # rate beta 的迴歸視窗（交易日）
+  # FOMC 會議「決議公布日」（兩天會期的第二天），來源：
+  # federalreserve.gov/monetarypolicy/fomccalendars.htm（2027 起為暫定）。
+  # 用途：會議前後市場波動天生偏高，不是系統出訊號變準了，
+  # 是這幾天本來就容易雜訊大——「接近會議」本身就是該提高警覺的資訊，
+  # 不需要等殖利率真的動了才知道。每年年底記得來這裡補下一年的日期。
+  fomc_dates:
+    - "2026-01-28"
+    - "2026-03-18"
+    - "2026-04-29"
+    - "2026-06-17"
+    - "2026-07-29"
+    - "2026-09-16"
+    - "2026-10-28"
+    - "2026-12-09"
+    - "2027-01-27"
+    - "2027-03-17"
+    - "2027-04-28"
+    - "2027-06-09"
+    - "2027-07-28"
+    - "2027-09-15"
+    - "2027-10-27"
+    - "2027-12-08"
 
 themes:
 
@@ -65,21 +98,28 @@ themes:
   光通訊矽光子:
     group: growth
     # GLW（康寧）業務描述首項就是 optical communications（光纖），歸這裡。
-    tickers: [COHR, LITE, AAOI, FN, CRDO, POET, GLW]
+    # CIEN（Ciena）是光通訊網路設備商，跟 COHR/LITE 同一條供應鏈。
+    tickers: [COHR, LITE, AAOI, FN, CRDO, POET, GLW, CIEN]
 
   AI互連ASIC:
     group: growth
     # ARM 是 CPU/GPU IP 授權商、INTC 是晶片設計製造商，兩者都屬晶片設計端，
     # 跟下面「半導體設備」（賣機台給晶圓廠的 AMAT/ASML 那類）不同層。
-    tickers: [AVGO, MRVL, ALAB, ANET, CRDO, MTSI, NVDA, AMD, "ON", ARM, INTC]
+    # QCOM 同屬晶片設計商；CBRS（Cerebras）是 AI 加速器公司，
+    # 今年才上市僅約 85 個交易日，還不到系統 120 筆的最低門檻，
+    # 目前會被 fetch_prices 自動剔除，資料累積夠了會自動生效。
+    tickers: [AVGO, MRVL, ALAB, ANET, CRDO, MTSI, NVDA, AMD, "ON", ARM, INTC,
+              QCOM, CBRS]
 
   半導體設備:
     group: growth
-    tickers: [AMAT, LRCX, KLAC, ASML, TER, ONTO, ACMR]
+    # COHU 做半導體測試設備，跟 AMAT/ASML 同屬賣機台給晶圓廠這層。
+    tickers: [AMAT, LRCX, KLAC, ASML, TER, ONTO, ACMR, COHU]
 
   HBM記憶體儲存:
     group: growth
-    tickers: [MU, WDC, STX, SIMO]
+    # SNDK（SanDisk，從 WDC 分割獨立）是 NAND 快閃記憶體商。
+    tickers: [MU, WDC, STX, SIMO, SNDK]
 
   AI伺服器硬體:
     group: growth
@@ -99,8 +139,10 @@ themes:
     # LEU、ALB 跟 核能SMR、鋰電池材料 主題重複——這是刻意的：
     # LEU（鈾濃縮）同時是核能發電鏈的一環，ALB（鋰）同時是電網儲能材料，
     # 兩者在不同主題鏡頭下都站得住腳，不是誤植。
-    # FLNC 做電網級儲能系統，屬供電側而非用電側。
-    tickers: [GEV, PWR, BE, VST, LEU, ALB, FLNC]
+    # FLNC、EOSE 都做電網級儲能系統，屬供電側而非用電側。
+    # SEI（Solaris Energy Infrastructure）業務描述首項就是「模組化發電設備」
+    # （原本客戶是油氣完井作業，現在也賣給資料中心），核心仍是發電設備。
+    tickers: [GEV, PWR, BE, VST, LEU, ALB, FLNC, EOSE, SEI]
 
   核能SMR:
     group: growth
@@ -128,7 +170,8 @@ themes:
 
   軟體SaaS:
     group: growth
-    tickers: [CRM, NOW, SNOW, DDOG, MDB, TEAM, SNPS, GOOGL, PLTR]
+    # CDNS（益華）跟 SNPS 同屬 EDA 晶片設計軟體商，放一起。
+    tickers: [CRM, NOW, SNOW, DDOG, MDB, TEAM, SNPS, GOOGL, PLTR, CDNS]
 
   機器人自動化:
     group: growth

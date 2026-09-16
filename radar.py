@@ -348,6 +348,80 @@ def _pctile(s, win=250):
     return None if len(t) < 30 else round(float((t <= t.iloc[-1]).mean() * 100))
 
 
+def driver_slopes(close):
+    """
+    拆解「美債」和「聯準會」兩種不同的驅動力。
+
+    原本只有「30Y − 13週」一條期限利差，兩種驅動力混在同一個數字裡：
+      - 美債／期限溢酬：財政供給、拍賣需求弱、外國買盤縮手，壓力集中在
+        最長天期。用 30Y − 10Y 量——只看長端自己有沒有比 10Y 賣得更凶，
+        跟聯準會近兩年的政策路徑基本無關。
+      - 聯準會／政策路徑預期：CPI/PCE、FOMC 會後聲明改變降息/升息預期，
+        壓力集中在中短天期。用 5Y − 3個月期 量——這段對政策預期最敏感，
+        又不像 13週期那樣幾乎被目前政策利率釘死。
+    兩條斜率同一天各自的 20 日變動，絕對值較大的那個就是這段期間的
+    主要驅動力。這是簡單的歸因，不是因果推論，但比只看一個混合訊號
+    更能回答「這次是美債還是聯準會」。
+    """
+    y30t, y10t = RATES.get("y30"), RATES.get("y10")
+    y5t, yst = RATES.get("y5"), RATES.get("y_short")
+    out = {}
+
+    if y30t in close.columns and y10t in close.columns:
+        s = (close[y30t] - close[y10t]).dropna()
+        if len(s) > 21:
+            out["debt_slope"] = round(float(s.iloc[-1]), 2)
+            out["debt_slope_chg20"] = round(float(s.iloc[-1] - s.iloc[-21]) * 100)
+
+    if y5t in close.columns and yst in close.columns:
+        s = (close[y5t] - close[yst]).dropna()
+        if len(s) > 21:
+            out["fed_slope"] = round(float(s.iloc[-1]), 2)
+            out["fed_slope_chg20"] = round(float(s.iloc[-1] - s.iloc[-21]) * 100)
+
+    dchg, fchg = out.get("debt_slope_chg20"), out.get("fed_slope_chg20")
+    if dchg is not None and fchg is not None:
+        if abs(dchg) < 3 and abs(fchg) < 3:
+            out["driver"] = "不明顯"          # 兩邊都沒什麼動靜，別硬歸因
+        elif abs(dchg) >= abs(fchg) * 1.3:
+            out["driver"] = "美債主導"
+        elif abs(fchg) >= abs(dchg) * 1.3:
+            out["driver"] = "聯準會主導"
+        else:
+            out["driver"] = "混合"
+    return out
+
+
+def fomc_status(as_of):
+    """
+    離下一場 FOMC 決議公布還有幾個交易日、上一場過了幾天。
+
+    會議前後市場波動天生偏高，不是系統的訊號變準了，是這幾天本來就
+    容易雜訊大——「接近會議」本身就是該提高警覺的資訊，不必等殖利率
+    真的動了才知道。日期表要每年底手動補，見 themes.yaml 的說明。
+    """
+    dates = sorted(RATES.get("fomc_dates", []))
+    if not dates:
+        return None
+    ds = [dt.date.fromisoformat(d) for d in dates]
+    ad = as_of.date() if hasattr(as_of, "date") else as_of
+
+    future = [d for d in ds if d >= ad]
+    past = [d for d in ds if d < ad]
+    nxt = future[0] if future else None
+    last = past[-1] if past else None
+
+    return {
+        "next_date": nxt.isoformat() if nxt else None,
+        "days_to_next": (nxt - ad).days if nxt else None,
+        "last_date": last.isoformat() if last else None,
+        "days_since_last": (ad - last).days if last else None,
+        # 會議日當天或前後各 2 個日曆天：決議公布前的猜測期 + 公布後的消化期
+        "in_window": bool(nxt and (nxt - ad).days <= 2)
+                     or bool(last and (ad - last).days <= 2),
+    }
+
+
 def rate_layer(close, volume, indices):
     """債市狀態 + 各主題曝險。缺任何一項資料就整層略過，不讓主流程掛掉。"""
     y10t = RATES.get("y10")
@@ -367,13 +441,18 @@ def rate_layer(close, volume, indices):
         "y10_high250": bool(len(y10) >= 60 and y10.iloc[-1] >= y10.tail(250).max()),
     }
 
-    # 期限利差走陡（長端賣得比短端凶）最傷長天期資產，跟單看殖利率水準不同
+    # 期限利差走陡（長端賣得比短端凶）最傷長天期資產，跟單看殖利率水準不同。
+    # 這條是原本的整體訊號（用於下面的五項計票），driver_slopes() 另外
+    # 拆出美債／聯準會兩條子訊號，回答「這次是哪一種在動」。
     y30t, yst = RATES.get("y30"), RATES.get("y_short")
     if y30t in close.columns and yst in close.columns:
         curve = (close[y30t] - close[yst]).dropna()
         out["curve"] = round(float(curve.iloc[-1]), 2)
         out["curve_chg20"] = (round(float(curve.iloc[-1] - curve.iloc[-21]) * 100)
                               if len(curve) > 21 else None)
+
+    out.update(driver_slopes(close))
+    out["fomc"] = fomc_status(close.index[-1])
 
     mv = RATES.get("bondvol")
     if mv in close.columns:
@@ -679,7 +758,7 @@ def main():
     themes = CFG["themes"]
     theme_tickers = sorted({t for v in themes.values() for t in v["tickers"]})
     macro_tk = {r[k] for r in MACRO for k in ("num", "den") if r.get(k)}
-    rate_tk = {RATES[k] for k in ("y10", "y30", "y_short", "bondvol") if RATES.get(k)}
+    rate_tk = {RATES[k] for k in ("y10", "y30", "y5", "y_short", "bondvol") if RATES.get(k)}
     rate_tk |= set(RATES.get("etfs", [])) | set(RATES.get("hedge_probe", []))
     all_tickers = sorted(set(theme_tickers) | macro_tk | rate_tk | {BENCH})
 

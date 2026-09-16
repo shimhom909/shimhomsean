@@ -459,6 +459,39 @@ function renderRates(){
     `<span>${h.t} <b class="${h.beta>0?'pos':h.beta>-0.05?'':'neg'}">${h.beta>=0?'+':''}${h.beta.toFixed(3)}</b>
      <span class="na">r=${h.corr}</span></span>`).join("");
 
+  // FOMC 倒數。會議前後波動天生偏高，不是訊號變準了——這是「該提高
+  // 警覺的時間窗」，不需要等殖利率真的動了才知道。
+  const f = r.fomc;
+  let fomcBadge = "";
+  if (f) {
+    if (f.days_to_next !== null && f.days_to_next <= 2) {
+      fomcBadge = `<span class="chip on" style="color:${getCSS('--warn')};
+        border-color:${getCSS('--warn')}66;background:${getCSS('--warn')}14">
+        ⏱ ${f.days_to_next===0?'今日':f.days_to_next+' 天後'}公布 FOMC 決議</span>`;
+    } else if (f.days_since_last !== null && f.days_since_last <= 2) {
+      fomcBadge = `<span class="chip on" style="color:${getCSS('--warn')};
+        border-color:${getCSS('--warn')}66;background:${getCSS('--warn')}14">
+        ⏱ FOMC 決議剛公布 ${f.days_since_last} 天，消化期</span>`;
+    } else {
+      fomcBadge = `<span class="chip">下次 FOMC ${nz(f.next_date)}
+        （${nz(f.days_to_next)} 天後）</span>`;
+    }
+  }
+
+  // 驅動力歸因：美債（長端期限溢酬）vs 聯準會（政策路徑預期）
+  // 用同一個顏色語意——不是誰對誰錯，是這段期間主要在動哪一邊
+  const driverCol = r.driver === "美債主導" ? getCSS('--warn')
+    : r.driver === "聯準會主導" ? getCSS('--mid')
+    : r.driver === "混合" ? getCSS('--dim') : getCSS('--faint');
+  const driverRow = (r.debt_slope !== undefined || r.fed_slope !== undefined) ? `
+    <div class="mktrow">
+      <span title="30Y−10Y。只看最長天期自己有沒有比 10Y 賣得更凶，跟聯準會近期政策路徑基本無關——財政供給、拍賣需求弱、外國買盤縮手時會走陡。">
+        美債／期限溢酬 <span class="na">30Y−10Y</span> <b>${nz(r.debt_slope)}%</b> ${bps(r.debt_slope_chg20)}</span>
+      <span title="5Y−13週。對降息/升息預期最敏感的一段，CPI/PCE 或 FOMC 會後聲明改變政策路徑時會先動這裡。">
+        聯準會／政策預期 <span class="na">5Y−13週</span> <b>${nz(r.fed_slope)}%</b> ${bps(r.fed_slope_chg20)}</span>
+      ${r.driver ? `<span>本次主導 <b style="color:${driverCol}">${r.driver}</b></span>` : ''}
+    </div>` : '';
+
   box.innerHTML = `
     <div class="mkthead">
       <div>
@@ -469,7 +502,7 @@ function renderRates(){
       </div>
       <div class="rdots">${dots}</div>
     </div>
-    <div class="chips">${chips}</div>
+    <div class="chips">${chips}${fomcBadge}</div>
     <div class="mktrow">
       <span>10年期 <b>${nz(r.y10)}%</b>
         <span class="na">第 ${nz(r.y10_pctile)} 百分位</span>
@@ -481,6 +514,7 @@ function renderRates(){
       <span>30Y−13W 利差 <b>${nz(r.curve)}%</b> ${bps(r.curve_chg20)}</span>
       <span>MOVE <b>${nz(r.move)}</b> <span class="na">第 ${nz(r.move_pctile)} 百分位</span></span>
     </div>
+    ${driverRow}
     <div class="mktrow">${etfs || '<span class="na">無債券 ETF 資料</span>'}</div>
     <div class="mktrow ratio">
       <span class="na">避險工具實測 beta（%/bp，正值＝殖利率漲時上漲）：</span>${probe}
