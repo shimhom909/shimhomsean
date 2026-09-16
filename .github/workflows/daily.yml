@@ -22,7 +22,7 @@ on:
       - .github/workflows/daily.yml
 
 permissions:
-  contents: read
+  contents: write   # 需要能把重新整理過的快取檔案 commit 回 repo
   pages: write
   id-token: write
 
@@ -80,6 +80,28 @@ jobs:
             python twrev.py
           else
             echo "非月營收公布期間，沿用快取的 twchain.json"
+          fi
+
+      - name: 提交更新後的快取資料
+        # flows.json / flows_history.json / twchain.json / twrev_history.json
+        # 原本只活在 Actions 快取裡，從沒寫回 repo——快取有「7 天沒被存取
+        # 就清掉」的規則，一旦哪週排程漏跑或快取被清空，flows_history.json
+        # 好不容易累積的期數、twrev_history.json 的月度歷史會直接歸零，
+        # 沒有任何救回的辦法。commit 回 git 之後快取只是加速用，
+        # git 才是真正的存續依據，順便讓本機開發看到的資料跟線上一致。
+        #
+        # 這四個檔案沒有列在上面 on.push.paths 裡，所以這個 commit
+        # 不會再觸發一次 push 事件，不會無限迴圈。
+        continue-on-error: true    # 這步失敗不該讓整個部署失敗，快取仍是備援
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f flows.json flows_history.json twchain.json twrev_history.json 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "快取資料無變化，不需要 commit"
+          else
+            git commit -m "自動更新快取資料 [skip ci]"
+            git push
           fi
 
       - name: 抓資料並計算動能
