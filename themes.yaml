@@ -166,7 +166,10 @@ themes:
 
   網路安全:
     group: growth
-    tickers: [PANW, CRWD, ZS, FTNT, S]
+    # NET=零信任/SASE、OKTA=身分管理、RBRK/VRNS=資料安全備份、
+    # TENB/QLYS=漏洞管理、CHKP=傳統網路資安。MSFT 市值 3,667B（其餘
+    # 標的 4B–115B），資安只占其業務一小塊，故意不放進來稀釋訊號。
+    tickers: [PANW, CRWD, ZS, FTNT, S, NET, OKTA, RBRK, VRNS, TENB, QLYS, CHKP]
 
   軟體SaaS:
     group: growth
