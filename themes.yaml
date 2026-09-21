@@ -98,8 +98,8 @@ themes:
   光通訊矽光子:
     group: growth
     # GLW（康寧）業務描述首項就是 optical communications（光纖），歸這裡。
-    # CIEN（Ciena）是光通訊網路設備商，跟 COHR/LITE 同一條供應鏈。
-    tickers: [COHR, LITE, AAOI, FN, CRDO, POET, GLW, CIEN]
+    # CIEN（Ciena）、NOK（Nokia）都是電信網路設備商，跟 COHR/LITE 同一條供應鏈。
+    tickers: [COHR, LITE, AAOI, FN, CRDO, POET, GLW, CIEN, NOK]
 
   AI互連ASIC:
     group: growth
@@ -108,8 +108,10 @@ themes:
     # QCOM 同屬晶片設計商；CBRS（Cerebras）是 AI 加速器公司，
     # 今年才上市僅約 85 個交易日，還不到系統 120 筆的最低門檻，
     # 目前會被 fetch_prices 自動剔除，資料累積夠了會自動生效。
+    # STM、IFNNY（Infineon store OTC ADR）跟 ON 同屬電源/類比半導體。
+    # IFNNY 日均成交額約 $26M，比 STM 的 $579M 薄很多但不是死盤。
     tickers: [AVGO, MRVL, ALAB, ANET, CRDO, MTSI, NVDA, AMD, "ON", ARM, INTC,
-              QCOM, CBRS]
+              QCOM, CBRS, STM, IFNNY]
 
   半導體設備:
     group: growth
@@ -130,7 +132,10 @@ themes:
     group: growth
     # APH（安費諾）做電氣／電子／光纖連接器，屬機房實體互連硬體。
     # 補進來後這個主題脫離 4 檔門檻，不再一掉代號就整個消失。
-    tickers: [ETN, HUBB, POWL, VRT, APH]
+    # DLR、EQIX 是資料中心 REIT——注意這兩檔的商業模式是不動產＋槓桿，
+    # 對利率的敏感度天生比 ETN/HUBB 這類設備商高很多，波動特性不完全一樣，
+    # 純粹因為都是「資料中心基建」放在一起，不是同一種公司。
+    tickers: [ETN, HUBB, POWL, VRT, APH, DLR, EQIX]
 
   發電端:
     group: growth
@@ -174,7 +179,9 @@ themes:
   軟體SaaS:
     group: growth
     # CDNS（益華）跟 SNPS 同屬 EDA 晶片設計軟體商，放一起。
-    tickers: [CRM, NOW, SNOW, DDOG, MDB, TEAM, SNPS, GOOGL, PLTR, CDNS]
+    # TEM（Tempus AI，醫療 AI）沒有更貼切的主題，跟 GOOGL/PLTR 一樣
+    # 算廣義的「AI 應用層」軟體公司，勉強放這裡。
+    tickers: [CRM, NOW, SNOW, DDOG, MDB, TEAM, SNPS, GOOGL, PLTR, CDNS, TEM]
 
   機器人自動化:
     group: growth
