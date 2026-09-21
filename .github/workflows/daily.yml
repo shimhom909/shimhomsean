@@ -107,6 +107,25 @@ jobs:
       - name: 抓資料並計算動能
         run: python radar.py
 
+      - name: 同步 Notion 潛力股評分表週摘要（每週六 + 手動觸發）
+        # cron 排在週二~週六 22:10 UTC（美股收盤後），週六那次抓到的
+        # 是週五收盤的資料，等於「這週結束」的快照，適合當週摘要基準。
+        # NOTION_TOKEN 需要在 repo Settings → Secrets and variables →
+        # Actions 設定，這裡不會、也不該把 token 寫進任何檔案。
+        continue-on-error: true    # Notion 那邊有狀況不該連累網站部署
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: |
+          DOW=$(date -u +%u)   # 1=週一 … 7=週日
+          if [ -z "$NOTION_TOKEN" ]; then
+            echo "未設定 NOTION_TOKEN，略過 Notion 同步"
+          elif [ "$DOW" = "6" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "執行 Notion 週摘要同步…"
+            python notion_sync.py
+          else
+            echo "非週六，略過 Notion 同步"
+          fi
+
       - name: 打包網站
         run: |
           mkdir -p _site

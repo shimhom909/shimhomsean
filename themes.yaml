@@ -31,6 +31,13 @@ scoring:
 #            分數會全段不可比。
 overlap_policy: none
 
+# Notion 週摘要同步（notion_sync.py）。
+# ⚠️ 這裡只放 page/database id，不是機密——真正的授權 token 一律走
+# NOTION_TOKEN 環境變數／GitHub Actions secret，絕不寫進這個檔案。
+notion:
+  source_page: "3b89858b-9b1b-8106-8b9c-e9685aa4a6b7"    # 潛力股量化評分表
+  dest_database: "3e29858b-9b1b-8174-b2f0-c02cfbc3cf85"  # 類股動能雷達｜每週摘要
+
 benchmark: SPY          # 相對強度的比較基準
 lookback_days: 750      # 抓多久的歷史資料（日曆天）
                         # 200 日均線 + 52 週高點需要約 250 個交易日才算得出來，
