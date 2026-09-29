@@ -7,9 +7,14 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
 <style>
   :root{
-    --bg:#0a0e1a; --card:#111827; --line:#1f2937;
-    --txt:#e5e7eb; --dim:#8b95a8; --faint:#5a6478;
-    --up:#34d399; --down:#f87171; --mid:#60a5fa; --warn:#fbbf24;
+    /* 白底配色。每個顏色都對白卡片(--card)實測過 WCAG 對比度：
+       txt 15.9:1、dim 6.0:1、up 5.5:1、down 4.8:1、mid 5.2:1、warn 5.0:1，
+       全部清過小字 4.5:1 門檻（純黃/亮綠這類飽和淺色在白底上對比度
+       會直接崩掉，所以 up/warn 刻意選深一階，不是隨手挑的顏色）。
+       faint 4.3:1 略低於門檻但只用在輔助性次要標籤，never 單獨承載關鍵資訊。 */
+    --bg:#f7f8fa; --card:#ffffff; --line:#e2e5eb;
+    --txt:#1a2233; --dim:#5b6472; --faint:#707a89;
+    --up:#047857; --down:#dc2626; --mid:#2563eb; --warn:#b45309;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--txt);
@@ -26,7 +31,7 @@
   .tab{background:var(--card);border:1px solid var(--line);color:var(--dim);
        padding:7px 16px;border-radius:7px;cursor:pointer;font-size:13px}
   .tab:hover{color:var(--txt)}
-  .tab.on{background:#1e293b;color:#fff;border-color:#334155}
+  .tab.on{background:var(--txt);color:#fff;border-color:var(--txt)}
 
   /* 首頁綜合摘要：粗體大字 + 純色塊 + 簡單線條圖示，取代大段文字。
      每張卡片左側一條純色塊當識別色，不用漸層或陰影——跟截圖參考的
@@ -50,13 +55,13 @@
 
   /* 大盤絕對狀態列。刻意用不同底色與邊框跟下面的主題卡片區隔開——
      這一區是絕對值，下面的分數是橫斷面排名，兩者不能用同一種方式解讀。 */
-  .mkt{background:#0d1424;border:1px solid var(--line);border-radius:12px;
+  .mkt{background:#eef2f9;border:1px solid var(--line);border-radius:12px;
        padding:16px 20px;margin-bottom:20px}
   .mkthead{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
   .mktlab{color:var(--faint);font-size:11.5px;letter-spacing:.5px}
   .regime{font-size:22px;font-weight:700;letter-spacing:1px}
   .rdots{display:flex;gap:4px;align-items:center}
-  .rdots i{width:19px;height:5px;border-radius:2px;background:#243044;display:block}
+  .rdots i{width:19px;height:5px;border-radius:2px;background:#dfe3ea;display:block}
   .mktspark{margin-left:auto;width:210px;height:44px;position:relative}
   .mktrow{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:12.5px;color:var(--dim);
           border-top:1px solid var(--line);padding-top:11px;margin-top:12px}
@@ -145,7 +150,7 @@
         font-variant-numeric:tabular-nums}
   .kval small{font-size:13px;font-weight:500;color:var(--dim);margin-left:3px}
   .ktar{color:var(--faint);font-size:11.5px}
-  .kbar{height:3px;background:#1f2937;border-radius:2px;overflow:hidden;margin:9px 0 7px}
+  .kbar{height:3px;background:#e7eaf0;border-radius:2px;overflow:hidden;margin:9px 0 7px}
   .kbar i{display:block;height:100%;border-radius:2px}
   .knote{color:var(--faint);font-size:11.5px;line-height:1.5}
 
@@ -169,14 +174,14 @@
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(370px,1fr));gap:16px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
         padding:18px 20px 14px}
-  .card.hot{border-color:#14532d;box-shadow:0 0 0 1px #14532d inset}
-  .card.alert{border-color:#78350f;box-shadow:0 0 0 1px #78350f inset}
+  .card.hot{border-color:#a7d7c5;box-shadow:0 0 0 1px #a7d7c5 inset}
+  .card.alert{border-color:#f3c58a;box-shadow:0 0 0 1px #f3c58a inset}
 
   .chead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
   .cname{font-size:16px;font-weight:600}
   .badge{font-size:11.5px;padding:3px 10px;border-radius:20px;white-space:nowrap;font-weight:500}
-  .badge.new{background:#052e16;color:#4ade80;border:1px solid #166534}
-  .badge.rev{background:#2e1a05;color:#fbbf24;border:1px solid #78350f}
+  .badge.new{background:#e6f6ee;color:#047857;border:1px solid #a7d7c5}
+  .badge.rev{background:#fdf1de;color:#b45309;border:1px solid #f3c58a}
 
   .score{display:flex;align-items:baseline;gap:9px;margin:12px 0 4px}
   .score b{font-size:34px;font-weight:700;line-height:1}
@@ -211,7 +216,7 @@
   .viewtabs{display:flex;gap:8px;margin:0 0 18px}
   .vtab{background:transparent;border:none;border-bottom:2px solid transparent;
         color:var(--dim);padding:8px 4px;margin-right:18px;cursor:pointer;font-size:14px}
-  .vtab.on{color:#fff;border-bottom-color:var(--mid)}
+  .vtab.on{color:var(--txt);border-bottom-color:var(--mid)}
 
   .chain{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
   .ccard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
@@ -220,19 +225,19 @@
   .cdir{font-size:12.5px;padding:3px 10px;border-radius:20px}
   .creading{font-size:30px;font-weight:700;margin:10px 0 2px}
   .csub{font-size:12px;color:var(--faint);margin-bottom:12px}
-  .conf{height:5px;background:#1f2937;border-radius:3px;overflow:hidden;margin:9px 0 4px}
+  .conf{height:5px;background:#e7eaf0;border-radius:3px;overflow:hidden;margin:9px 0 4px}
   .conf i{display:block;height:100%;border-radius:3px}
   .clab{display:flex;justify-content:space-between;font-size:11.5px;color:var(--faint)}
   .sup{border-top:1px solid var(--line);margin-top:12px;padding-top:10px;
        font-size:12.5px;color:var(--dim);line-height:1.9}
   .sup span{display:inline-block;margin-right:12px}
 
-  .note{background:#141b2d;border:1px solid var(--line);border-left:3px solid var(--warn);
+  .note{background:#f3f5f9;border:1px solid var(--line);border-left:3px solid var(--warn);
         border-radius:8px;padding:14px 18px;margin-bottom:18px;
         font-size:12.5px;color:var(--dim);line-height:1.8}
   .note b{color:var(--txt)}
 
-  #err{background:#2a1215;border:1px solid #7f1d1d;color:#fca5a5;
+  #err{background:#fdecec;border:1px solid #f3b6b6;color:#b91c1c;
        padding:16px 20px;border-radius:10px;line-height:1.7;display:none}
   footer{color:var(--faint);font-size:11.5px;margin-top:28px;
          border-top:1px solid var(--line);padding-top:14px;line-height:1.7}
@@ -435,7 +440,7 @@ function renderMarket(){
     : `<b class="${cls === undefined ? (v>=0?'pos':'neg') : cls}">${sign(v)}%</b>`;
 
   const dots = Array.from({length:5}, (_,i) =>
-    `<i style="background:${i < m.regime_score ? rc : '#243044'}"></i>`).join("");
+    `<i style="background:${i < m.regime_score ? rc : '#dfe3ea'}"></i>`).join("");
 
   const ratios = (m.ratios||[]).map(r =>
     `<span>${r.label} <span class="na">${r.pair}</span> ${signed(r.chg20)}</span>`).join("");
@@ -495,7 +500,7 @@ function renderRates(){
   const sc = r.stress >= 4 ? getCSS('--down')
            : r.stress >= 2 ? getCSS('--warn') : getCSS('--up');
   const dots = Array.from({length:5}, (_,i) =>
-    `<i style="background:${i < r.stress ? sc : '#243044'}"></i>`).join("");
+    `<i style="background:${i < r.stress ? sc : '#dfe3ea'}"></i>`).join("");
 
   const nz = (v, s) => v === null || v === undefined ? '—' : (s||'') + v;
   const bps = v => v === null || v === undefined ? '—'
@@ -877,10 +882,13 @@ function renderCmpPicker(){
     const slot = slotOf(name);
     const on = slot >= 0;
     const disabled = !on && full;
-    const style = on ? `border-color:${CMP_COLORS[slot]};color:${CMP_COLORS[slot]};
+    // 文字一律用中性色（--txt），分類色只留給圓點與邊框——白底下
+    // 黃/青這類淺色如果直接套在文字上，對比度會掉到 3:1 以下讀不清楚。
+    const style = on ? `border-color:${CMP_COLORS[slot]};color:var(--txt);
       background:${CMP_COLORS[slot]}14` : "";
+    const dot = on ? `<span style="color:${CMP_COLORS[slot]}">●</span> ` : "";
     return `<button class="cmpchip${on?' on':''}${disabled?' disabled':''}"
-      data-name="${name}" style="${style}">${on?'● ':''}${name}</button>`;
+      data-name="${name}" style="${style}">${dot}${name}</button>`;
   }).join("");
 
   box.querySelectorAll(".cmpchip").forEach(btn => btn.onclick = () => {
@@ -972,9 +980,9 @@ let CHAIN = null;
 
 function dirColor(d){
   if (d === "強勁擴張") return getCSS('--up');
-  if (d === "溫和成長") return "#86efac";
+  if (d === "溫和成長") return "#15803d";
   if (d === "持平")     return getCSS('--dim');
-  if (d === "轉弱")     return "#fca5a5";
+  if (d === "轉弱")     return "#c2410c";
   return getCSS('--down');
 }
 
