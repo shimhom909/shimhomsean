@@ -717,6 +717,74 @@ def rotation_digest(scores):
     }
 
 
+# ------------------------------------------------------------- 首頁綜合摘要
+# 把 market／rates／rotation 三塊已經算好的數字，各自濃縮成一句話。
+#
+# ⚠️ 這裡只做「陳述現況」，不做「指示動作」——刻意不用「建議」「進場」
+# 「加碼」「減碼」這類指示性字眼，只描述數字本身是什麼狀態、哪裡在變動。
+# 跟本專案其他地方（notion_sync.py、頁尾聲明）站在同一個立場：
+# 這是資料研究工具，不是投資顧問，方向判斷留給看的人自己做。
+def build_summary(market, rates, rotation):
+    items = []
+
+    if market:
+        tone = ("up" if market["regime"] == "擴張"
+                else "down" if market["regime"] == "收縮" else "warn")
+        bits = []
+        if market.get("px_vs_ma200") is not None:
+            bits.append(f"SPY 距200日線{market['px_vs_ma200']:+.1f}%")
+        if market.get("breadth200") is not None:
+            bits.append(f"廣度{market['breadth200']:.0f}%成分股站上200日線")
+        if market.get("drawdown") is not None:
+            bits.append(f"距52週高點{market['drawdown']:+.1f}%")
+        items.append({
+            "key": "market", "label": "大盤環境", "tone": tone,
+            "headline": f"{market['regime']}（{market['regime_score']}/5）",
+            "detail": "、".join(bits) + "。" if bits else "資料不足。",
+        })
+
+    if rates:
+        tone = "down" if rates["stress"] >= 4 else "warn" if rates["stress"] >= 2 else "up"
+        driver = rates.get("driver")
+        headline = f"{rates['stress_label']}（{rates['stress']}/5）"
+        if driver and driver != "不明顯":
+            headline += f"・{driver}"
+        bits = [f"10年期{rates['y10']:.2f}%（第{rates['y10_pctile']}百分位）"]
+        f = rates.get("fomc")
+        if f:
+            if f["days_to_next"] is not None and f["days_to_next"] <= 2:
+                bits.append(f"距FOMC決議公布剩{f['days_to_next']}天")
+            elif f["days_since_last"] is not None and f["days_since_last"] <= 2:
+                bits.append(f"FOMC決議剛公布{f['days_since_last']}天，消化期")
+        items.append({
+            "key": "rates", "label": "債市壓力", "tone": tone,
+            "headline": headline, "detail": "、".join(bits) + "。",
+        })
+
+    if rotation:
+        inflow = rotation.get("inflow") or []
+        outflow = rotation.get("outflow") or []
+        headline = (f"{inflow[0]['name']}輪入最強" if inflow
+                   else "本週無明顯輪入" if not outflow else "本週以輪出為主")
+        bits = []
+        if inflow:
+            bits.append("輪入前三：" + "、".join(
+                f"{r['name']} {r['chg']:+.1f}" for r in inflow[:3]))
+        if outflow:
+            bits.append("輪出前三：" + "、".join(
+                f"{r['name']} {r['chg']:+.1f}" for r in outflow[:3]))
+        n_up, n_down = len(rotation.get("upgrades") or []), len(rotation.get("downgrades") or [])
+        if n_up or n_down:
+            bits.append(f"狀態升級{n_up}個／降級{n_down}個")
+        items.append({
+            "key": "rotation", "label": f"本週輪動（{rotation['from_date']}→{rotation['to_date']}）",
+            "tone": "neutral", "headline": headline,
+            "detail": "；".join(bits) + "。" if bits else "資料不足。",
+        })
+
+    return {"items": items} if items else None
+
+
 # --------------------------------------------------------------- 歷史存檔
 def write_history(scores, mkt):
     """
@@ -916,12 +984,15 @@ def main():
             + (f" · 狀態升級 {len(rot['upgrades'])} 個"
                f"／降級 {len(rot['downgrades'])} 個" if rot["upgrades"] or rot["downgrades"] else ""))
 
+    summary = build_summary(market, rates, rot)
+
     out = {
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "data_date": latest_date.strftime("%Y-%m-%d"),
         "benchmark": BENCH,
         "scoring_profile": PROFILE,     # 哪一組權重算出來的，跨版本比對時要看這個
         "thresholds": {"enter": ENTER, "strong": STRONG, "weak": WEAK},
+        "summary": summary,
         "market": market,
         "rates": rates,
         "rotation": rot,
