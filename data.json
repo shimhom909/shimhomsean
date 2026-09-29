@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-29T04:22:48+00:00",
+ "generated_at": "2026-09-29T09:40:47+00:00",
  "data_date": "2026-09-28",
  "benchmark": "SPY",
  "scoring_profile": "legacy",
@@ -172,13 +172,13 @@
  "rates": {
   "y10": 5.24,
   "y10_chg20": 52,
-  "y10_chg60": 76,
+  "y10_chg60": 75,
   "y10_pctile": 100,
   "y10_high250": true,
   "curve": 1.5,
   "curve_chg20": 3,
   "debt_slope": 0.32,
-  "debt_slope_chg20": -17,
+  "debt_slope_chg20": -16,
   "fed_slope": 1.01,
   "fed_slope_chg20": 26,
   "driver": "聯準會主導",
@@ -700,7 +700,7 @@
      },
      {
       "label": "資金流向資料年齡",
-      "value": 13.25,
+      "value": 0.21,
       "target": 14,
       "dir": "lte",
       "unit": "天",
@@ -710,7 +710,7 @@
      },
      {
       "label": "台廠營收資料年齡",
-      "value": 13.25,
+      "value": 13.47,
       "target": 45,
       "dir": "lte",
       "unit": "天",
@@ -792,12 +792,12 @@
      },
      {
       "label": "流向歷史累積",
-      "value": 3.0,
+      "value": 4.0,
       "target": 30,
       "dir": "gte",
       "unit": "期",
       "status": "bad",
-      "pct": 10,
+      "pct": 13,
       "note": "累積滿 30 期後 _test_flows_predictive.py 才能做多期檢驗"
      }
     ]
@@ -865,13 +865,13 @@
    "flows": {
     "insider_net": -100,
     "insider_buy_usd": 0,
-    "insider_sell_usd": 349532835,
+    "insider_sell_usd": 538089585,
     "insider_n_buy": 0,
-    "insider_n_sell": 424,
+    "insider_n_sell": 374,
     "short_pct": 4.3,
-    "short_chg": 22.2,
-    "short_cover": 4,
-    "n": 4
+    "short_chg": -0.5,
+    "short_cover": 5,
+    "n": 5
    }
   },
   {
@@ -941,13 +941,13 @@
    "flows": {
     "insider_net": -100,
     "insider_buy_usd": 0,
-    "insider_sell_usd": 134564903,
+    "insider_sell_usd": 528855000,
     "insider_n_buy": 0,
-    "insider_n_sell": 442,
-    "short_pct": 3.8,
-    "short_chg": -5.3,
-    "short_cover": 5,
-    "n": 5
+    "insider_n_sell": 731,
+    "short_pct": 6.5,
+    "short_chg": 10.0,
+    "short_cover": 12,
+    "n": 12
    }
   },
   {
@@ -1011,11 +1011,11 @@
    "flows": {
     "insider_net": -100,
     "insider_buy_usd": 0,
-    "insider_sell_usd": 650637808,
+    "insider_sell_usd": 452596575,
     "insider_n_buy": 0,
-    "insider_n_sell": 608,
-    "short_pct": 11.0,
-    "short_chg": -4.3,
+    "insider_n_sell": 370,
+    "short_pct": 11.1,
+    "short_chg": -3.0,
     "short_cover": 6,
     "n": 6
    }
@@ -1089,13 +1089,13 @@
    "flows": {
     "insider_net": -99,
     "insider_buy_usd": 9999985,
-    "insider_sell_usd": 2101142995,
+    "insider_sell_usd": 2508467559,
     "insider_n_buy": 1,
-    "insider_n_sell": 682,
+    "insider_n_sell": 794,
     "short_pct": 4.3,
-    "short_chg": 5.5,
-    "short_cover": 11,
-    "n": 11
+    "short_chg": 4.3,
+    "short_cover": 15,
+    "n": 15
    }
   },
   {
@@ -1161,13 +1161,13 @@
    "flows": {
     "insider_net": -100,
     "insider_buy_usd": 0,
-    "insider_sell_usd": 197106426,
+    "insider_sell_usd": 156104001,
     "insider_n_buy": 0,
-    "insider_n_sell": 51,
-    "short_pct": 3.2,
-    "short_chg": 7.9,
-    "short_cover": 7,
-    "n": 7
+    "insider_n_sell": 58,
+    "short_pct": 5.2,
+    "short_chg": 7.6,
+    "short_cover": 8,
+    "n": 8
    }
   },
   {
@@ -1228,13 +1228,13 @@
     "drag20": -19.2
    },
    "flows": {
-    "insider_net": -85,
+    "insider_net": -80,
     "insider_buy_usd": 646836,
-    "insider_sell_usd": 8156782,
+    "insider_sell_usd": 5898323,
     "insider_n_buy": 1,
-    "insider_n_sell": 21,
-    "short_pct": 18.4,
-    "short_chg": -7.2,
+    "insider_n_sell": 17,
+    "short_pct": 18.6,
+    "short_chg": 3.0,
     "short_cover": 5,
     "n": 5
    }
@@ -1304,14 +1304,14 @@
    },
    "flows": {
     "insider_net": -100,
-    "insider_buy_usd": 0,
-    "insider_sell_usd": 699037308,
-    "insider_n_buy": 0,
-    "insider_n_sell": 373,
-    "short_pct": 3.5,
-    "short_chg": -6.0,
-    "short_cover": 9,
-    "n": 9
+    "insider_buy_usd": 999451,
+    "insider_sell_usd": 544347682,
+    "insider_n_buy": 1,
+    "insider_n_sell": 403,
+    "short_pct": 5.2,
+    "short_chg": 4.1,
+    "short_cover": 11,
+    "n": 11
    }
   },
   {
@@ -1374,11 +1374,11 @@
    "flows": {
     "insider_net": -100,
     "insider_buy_usd": 0,
-    "insider_sell_usd": 1877784,
+    "insider_sell_usd": 2078572,
     "insider_n_buy": 0,
     "insider_n_sell": 11,
-    "short_pct": 23.8,
-    "short_chg": 8.2,
+    "short_pct": 25.5,
+    "short_chg": 10.8,
     "short_cover": 5,
     "n": 5
    }
@@ -1444,11 +1444,11 @@
    "flows": {
     "insider_net": -100,
     "insider_buy_usd": 619200,
-    "insider_sell_usd": 491062873,
+    "insider_sell_usd": 546200405,
     "insider_n_buy": 3,
-    "insider_n_sell": 75,
-    "short_pct": 15.6,
-    "short_chg": -0.7,
+    "insider_n_sell": 86,
+    "short_pct": 15.8,
+    "short_chg": 1.6,
     "short_cover": 7,
     "n": 7
    }
@@ -1515,13 +1515,13 @@
    "flows": {
     "insider_net": -100,
     "insider_buy_usd": 92162,
-    "insider_sell_usd": 206808370,
+    "insider_sell_usd": 200450208,
     "insider_n_buy": 2,
-    "insider_n_sell": 31,
-    "short_pct": 4.0,
-    "short_chg": -0.1,
-    "short_cover": 5,
-    "n": 5
+    "insider_n_sell": 29,
+    "short_pct": 3.2,
+    "short_chg": -4.4,
+    "short_cover": 7,
+    "n": 7
    }
   },
   {
@@ -1584,11 +1584,11 @@
    "flows": {
     "insider_net": -100,
     "insider_buy_usd": 0,
-    "insider_sell_usd": 8592176,
+    "insider_sell_usd": 8612176,
     "insider_n_buy": 0,
-    "insider_n_sell": 12,
-    "short_pct": 4.8,
-    "short_chg": -3.1,
+    "insider_n_sell": 13,
+    "short_pct": 4.7,
+    "short_chg": -1.3,
     "short_cover": 5,
     "n": 5
    }
@@ -1653,11 +1653,11 @@
    "flows": {
     "insider_net": -100,
     "insider_buy_usd": 0,
-    "insider_sell_usd": 38751575,
+    "insider_sell_usd": 42847570,
     "insider_n_buy": 0,
-    "insider_n_sell": 55,
-    "short_pct": 10.3,
-    "short_chg": -1.2,
+    "insider_n_sell": 62,
+    "short_pct": 10.6,
+    "short_chg": 7.6,
     "short_cover": 5,
     "n": 5
    }
@@ -1724,15 +1724,15 @@
     "drag20": -10.6
    },
    "flows": {
-    "insider_net": -93,
-    "insider_buy_usd": 1173069,
-    "insider_sell_usd": 32950659,
-    "insider_n_buy": 3,
-    "insider_n_sell": 16,
-    "short_pct": 10.4,
-    "short_chg": 6.1,
-    "short_cover": 7,
-    "n": 7
+    "insider_net": -90,
+    "insider_buy_usd": 1857883,
+    "insider_sell_usd": 34052565,
+    "insider_n_buy": 9,
+    "insider_n_sell": 21,
+    "short_pct": 14.8,
+    "short_chg": 1.0,
+    "short_cover": 9,
+    "n": 9
    }
   },
   {
@@ -1799,13 +1799,13 @@
    "flows": {
     "insider_net": -100,
     "insider_buy_usd": 0,
-    "insider_sell_usd": 185849735,
+    "insider_sell_usd": 193768046,
     "insider_n_buy": 0,
-    "insider_n_sell": 250,
-    "short_pct": 7.4,
-    "short_chg": 2.4,
-    "short_cover": 7,
-    "n": 7
+    "insider_n_sell": 257,
+    "short_pct": 6.3,
+    "short_chg": 13.4,
+    "short_cover": 9,
+    "n": 9
    }
   },
   {
@@ -1872,8 +1872,8 @@
     "insider_sell_usd": 1093562,
     "insider_n_buy": 0,
     "insider_n_sell": 7,
-    "short_pct": 3.2,
-    "short_chg": -17.9,
+    "short_pct": 3.1,
+    "short_chg": 7.1,
     "short_cover": 6,
     "n": 6
    }
@@ -1937,13 +1937,13 @@
     "drag20": -16.2
    },
    "flows": {
-    "insider_net": -24,
+    "insider_net": -51,
     "insider_buy_usd": 3930350,
-    "insider_sell_usd": 6430415,
+    "insider_sell_usd": 12122191,
     "insider_n_buy": 1,
-    "insider_n_sell": 14,
-    "short_pct": 4.0,
-    "short_chg": 16.9,
+    "insider_n_sell": 23,
+    "short_pct": 4.1,
+    "short_chg": 5.9,
     "short_cover": 6,
     "n": 6
    }
@@ -2010,11 +2010,11 @@
    "flows": {
     "insider_net": -100,
     "insider_buy_usd": 0,
-    "insider_sell_usd": 72782063,
+    "insider_sell_usd": 73538346,
     "insider_n_buy": 0,
-    "insider_n_sell": 65,
-    "short_pct": 3.4,
-    "short_chg": -1.7,
+    "insider_n_sell": 73,
+    "short_pct": 3.5,
+    "short_chg": 10.0,
     "short_cover": 7,
     "n": 7
    }
@@ -2078,13 +2078,13 @@
     "drag20": 2.9
    },
    "flows": {
-    "insider_net": -97,
+    "insider_net": -95,
     "insider_buy_usd": 499971,
-    "insider_sell_usd": 29566597,
+    "insider_sell_usd": 18508570,
     "insider_n_buy": 1,
-    "insider_n_sell": 16,
-    "short_pct": 4.5,
-    "short_chg": -5.6,
+    "insider_n_sell": 15,
+    "short_pct": 4.6,
+    "short_chg": 5.4,
     "short_cover": 6,
     "n": 6
    }
@@ -2149,11 +2149,11 @@
    "flows": {
     "insider_net": -100,
     "insider_buy_usd": 0,
-    "insider_sell_usd": 33928350,
+    "insider_sell_usd": 32866575,
     "insider_n_buy": 0,
-    "insider_n_sell": 47,
-    "short_pct": 20.5,
-    "short_chg": 0.9,
+    "insider_n_sell": 45,
+    "short_pct": 21.5,
+    "short_chg": 12.2,
     "short_cover": 5,
     "n": 5
    }
@@ -2217,13 +2217,13 @@
     "drag20": -18.3
    },
    "flows": {
-    "insider_net": 15,
-    "insider_buy_usd": 1130399,
+    "insider_net": 19,
+    "insider_buy_usd": 1240471,
     "insider_sell_usd": 838431,
-    "insider_n_buy": 4,
+    "insider_n_buy": 6,
     "insider_n_sell": 7,
-    "short_pct": 11.1,
-    "short_chg": 2.6,
+    "short_pct": 11.5,
+    "short_chg": 4.8,
     "short_cover": 6,
     "n": 6
    }
@@ -2289,11 +2289,11 @@
    "flows": {
     "insider_net": -100,
     "insider_buy_usd": 0,
-    "insider_sell_usd": 1466364,
+    "insider_sell_usd": 1999077,
     "insider_n_buy": 0,
-    "insider_n_sell": 7,
-    "short_pct": 10.7,
-    "short_chg": 4.8,
+    "insider_n_sell": 9,
+    "short_pct": 10.9,
+    "short_chg": -3.2,
     "short_cover": 6,
     "n": 6
    }
