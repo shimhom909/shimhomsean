@@ -246,7 +246,17 @@ def write_digest(dest_db, rows, week_label):
     log(f"✅ 已寫入 {len(rows)} 列")
 
 
+def already_written(dest_db, week_label):
+    """這一天的摘要是不是已經寫過——讓重跑幾次都不會產生重複列。"""
+    r = notion("POST", f"/databases/{dest_db}/query", {
+        "filter": {"property": "週別", "date": {"equals": week_label}},
+        "page_size": 1,
+    })
+    return bool(r.get("results"))
+
+
 def main():
+    force = "--force" in sys.argv
     source_page = os.environ.get("NOTION_SOURCE_PAGE") or NOTION_CFG.get("source_page")
     dest_db = os.environ.get("NOTION_DEST_DATABASE") or NOTION_CFG.get("dest_database")
     if not source_page or not dest_db:
@@ -258,6 +268,18 @@ def main():
     if not data_path.exists():
         raise SystemExit("找不到 data.json，請先執行 python radar.py。")
     data = json.loads(data_path.read_text(encoding="utf-8"))
+    week_label = data["data_date"]
+
+    # 只在「週五收盤」的資料寫入，等於一週結束的快照。用資料日判斷而不是
+    # 執行當天星期幾——GitHub 排程常延遲數小時跨過午夜，看執行日會錯開一天。
+    # 已知取捨：週五休市的週（如耶穌受難日）資料日是週四，該週會略過，
+    # 需要的話手動觸發 workflow（帶 --force）補寫。
+    if not force and dt.date.fromisoformat(week_label).weekday() != 4:
+        log(f"資料日 {week_label} 不是週五收盤，略過週摘要（手動觸發可加 --force）")
+        return
+    if already_written(dest_db, week_label):
+        log(f"{week_label} 的週摘要已寫過，略過，不重複寫入")
+        return
 
     log("讀取 Notion 潛力股量化評分表…")
     scoresheet = load_scoresheet(source_page)

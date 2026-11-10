@@ -55,31 +55,43 @@ jobs:
           key: cache-${{ github.run_id }}
           restore-keys: cache-
 
-      - name: 抓內部人交易與融券（每週二 + 手動觸發）
+      # ⚠️ 下面兩步原本用「今天星期幾／幾號」決定要不要跑，但 GitHub 排程
+      # 常延遲 3–4 小時，UTC 22:10 的排程實際落在隔天凌晨，星期幾整個錯開
+      # 一天——週二的 flows.py 變成週三執行而被跳過，9/29 之後六週沒更新。
+      # 改成看「資料本身多舊」，排程延遲多久都不影響。
+      - name: 抓內部人交易與融券（資料超過 6 天 + 手動觸發）
         # 這兩類資料變動慢（Form 4 兩天內申報、融券兩週公布一次），
-        # 每天抓沒有意義，只會拖慢排程並對 SEC 造成不必要負擔。
+        # 每週抓一次就夠，每天抓只會拖慢排程並對 SEC 造成不必要負擔。
         continue-on-error: true
         run: |
-          DOW=$(date -u +%u)   # 1=週一 … 7=週日
-          if [ "$DOW" = "2" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          AGE=$(python -c "import json,datetime as d; g=json.load(open('flows.json', encoding='utf-8'))['generated_at']; print((d.datetime.now(d.timezone.utc)-d.datetime.fromisoformat(g)).days)" 2>/dev/null || echo 999)
+          echo "flows.json 已 ${AGE} 天未更新"
+          if [ "$AGE" -ge 6 ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "執行資金流向模組…"
             python flows.py
           else
-            echo "今天不是週二，沿用快取的 flows.json"
+            echo "資料仍新，沿用 flows.json"
           fi
 
-      - name: 抓台廠月營收（每月 11–15 日 + 手動觸發）
-        # 台灣規定每月 10 日前公布上月營收，所以 11 日之後才抓得到新資料。
-        # 抓 11–15 日這個區間是為了容錯：某天失敗還有機會補上。
+      - name: 抓台廠月營收（每月 11 日後、上月資料未到手 + 手動觸發）
+        # 台灣規定每月 10 日前公布上月營收，11 日後才抓得到。
+        # 只要 twchain.json 還不是上個月的資料就一直重試，抓到就停——
+        # 不再依賴「剛好在 11–15 日跑到」，延遲或某天失敗都會自動補上。
         continue-on-error: true
         run: |
-          DOM=$(date -u +%d)
-          if [ "$DOM" -ge 11 ] && [ "$DOM" -le 15 ] \
-             || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          NEED=$(python -c "
+          import json, datetime as d
+          t = d.datetime.now(d.timezone(d.timedelta(hours=8))).date()
+          prev = (t.replace(day=1) - d.timedelta(days=1)).strftime('%Y-%m')
+          try: have = json.load(open('twchain.json', encoding='utf-8')).get('period')
+          except Exception: have = None
+          print('yes' if t.day >= 11 and have != prev else 'no')
+          " 2>/dev/null || echo yes)
+          if [ "$NEED" = "yes" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "執行台廠供應鏈模組…"
             python twrev.py
           else
-            echo "非月營收公布期間，沿用快取的 twchain.json"
+            echo "已有上月營收資料（或尚未到 11 日），沿用 twchain.json"
           fi
 
       - name: 提交更新後的快取資料
@@ -101,29 +113,35 @@ jobs:
             echo "快取資料無變化，不需要 commit"
           else
             git commit -m "自動更新快取資料 [skip ci]"
-            git push
+            # 兩次執行撞在一起時（例如手動觸發剛好碰到排程），遠端會先多一筆
+            # commit 導致 push 被拒。這四個檔案只有 bot 會寫，rebase 不會衝突。
+            for i in 1 2 3; do
+              git push && break
+              echo "push 被拒，第 $i 次 rebase 後重試…"
+              git pull --rebase origin main
+            done
           fi
 
       - name: 抓資料並計算動能
         run: python radar.py
 
-      - name: 同步 Notion 潛力股評分表週摘要（每週六 + 手動觸發）
-        # cron 排在週二~週六 22:10 UTC（美股收盤後），週六那次抓到的
-        # 是週五收盤的資料，等於「這週結束」的快照，適合當週摘要基準。
+      - name: 同步 Notion 潛力股評分表週摘要
+        # 每次都呼叫，由 notion_sync.py 自己判斷：資料日是週五收盤（一週結束的
+        # 快照）且這一天還沒寫過才寫。原本用「今天是週六」判斷，但排程延遲讓
+        # 週六的執行落到週日而被跳過，所以從沒自動寫入過。手動觸發加 --force
+        # 可寫入非週五的資料（仍不會重複寫同一天）。
         # NOTION_TOKEN 需要在 repo Settings → Secrets and variables →
         # Actions 設定，這裡不會、也不該把 token 寫進任何檔案。
         continue-on-error: true    # Notion 那邊有狀況不該連累網站部署
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
         run: |
-          DOW=$(date -u +%u)   # 1=週一 … 7=週日
           if [ -z "$NOTION_TOKEN" ]; then
-            echo "未設定 NOTION_TOKEN，略過 Notion 同步"
-          elif [ "$DOW" = "6" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "執行 Notion 週摘要同步…"
-            python notion_sync.py
+            echo "⚠️ 未設定 NOTION_TOKEN secret，略過 Notion 同步"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            python notion_sync.py --force
           else
-            echo "非週六，略過 Notion 同步"
+            python notion_sync.py
           fi
 
       - name: 打包網站
