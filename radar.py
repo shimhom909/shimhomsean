@@ -717,6 +717,43 @@ def rotation_digest(scores):
     }
 
 
+def rotation_drivers(rot, indices, close, valid):
+    """
+    替每個主題的週輪動補上「是什麼推動的」——只用價格，是事實不是推測：
+      - 板塊本身這週絕對漲跌多少、同期 SPY 漲跌多少
+      - 成分股幾檔漲幾檔跌
+      - 帶動最多的成分股（輪入看漲最多的，輪出看跌最多的）
+
+    為什麼要放絕對漲跌：輪動分數是同日橫斷面名次，「輪入」只代表排名
+    往前，板塊本身可能其實在下跌、只是跌得比別人少。沒有這個數字，
+    「輪入」很容易被誤讀成「在漲」。
+
+    rotation_digest 回傳的 inflow/outflow/upgrades 等清單跟 all 共用同一批
+    dict，所以這裡直接改 all 裡的每一列，其他清單會一起帶到。
+    """
+    if not rot:
+        return
+    n = ROTATION_DAYS
+    spy = close[BENCH].dropna()
+    rot["spy_ret"] = (num(spy.iloc[-1] / spy.iloc[-1 - n] - 1, 1, 100)
+                      if len(spy) > n else None)
+
+    for row in rot["all"]:
+        name = row["name"]
+        idx, have = indices.get(name), valid.get(name)
+        if idx is None or not have or len(idx) <= n:
+            continue
+        row["ret"] = num(idx.iloc[-1] / idx.iloc[-1 - n] - 1, 1, 100)
+
+        sub = close[have]
+        r = (sub.iloc[-1] / sub.iloc[-1 - n] - 1).dropna() * 100
+        row["n_up"] = int((r > 0).sum())
+        row["n_total"] = int(len(r))
+        # 方向跟著這週的名次變化走：輪入列漲最多的，輪出列跌最多的
+        picked = r.sort_values(ascending=row["chg"] < 0).head(3)
+        row["drivers"] = [{"t": t, "ret": num(v, 1)} for t, v in picked.items()]
+
+
 # ------------------------------------------------------------- 首頁綜合摘要
 # 把 market／rates／rotation 三塊已經算好的數字，各自濃縮成一句話。
 #
@@ -978,6 +1015,7 @@ def main():
 
     # ---- 週輪動摘要 ----
     rot = rotation_digest(scores)
+    rotation_drivers(rot, indices, close, valid)
     if rot:
         head = "；".join(f"{r['name']} {r['chg']:+.1f}" for r in rot["inflow"][:3])
         log(f"週輪動（{rot['from_date']}→{rot['to_date']}）輪入前三：{head or '無'}"

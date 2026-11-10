@@ -120,6 +120,30 @@
   .rotev .item span{color:var(--faint);font-size:12px;margin-left:6px}
   .rotev .none{color:var(--faint);font-size:12.5px;padding:4px 0}
 
+  /* 變動解析：每個重點主題一張卡，先講價格事實（板塊漲跌、對比 SPY、
+     幾檔漲、誰帶動），再附同期新聞當查證起點。 */
+  .whygrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));
+           gap:14px;margin-bottom:22px}
+  @media(max-width:520px){ .whygrid{grid-template-columns:1fr} }
+  .why{background:var(--card);border:1px solid var(--line);border-radius:12px;
+       padding:16px 18px;border-left:4px solid var(--line)}
+  .why.up{border-left-color:var(--up)} .why.down{border-left-color:var(--down)}
+  .whyhead{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+  .whyname{font-size:16px;font-weight:700}
+  .whytag{font-size:12px;color:var(--faint)}
+  .whychg{margin-left:auto;font-size:15px;font-weight:700;white-space:nowrap}
+  .whyfacts{font-size:12.5px;color:var(--dim);line-height:1.8}
+  .whyfacts b{color:var(--txt);font-weight:600}
+  .whydrv{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 4px}
+  .whydrv span{font-size:12px;padding:2px 9px;border-radius:20px;
+               border:1px solid var(--line);color:var(--txt);font-variant-numeric:tabular-nums}
+  .whynews{border-top:1px dashed var(--line);margin-top:10px;padding-top:9px}
+  .whynews h5{font-size:11.5px;font-weight:500;color:var(--faint);margin-bottom:6px}
+  .whynews a{display:block;font-size:12.5px;color:var(--txt);text-decoration:none;
+             line-height:1.5;padding:3px 0}
+  .whynews a:hover{color:var(--mid);text-decoration:underline}
+  .whynews .src{color:var(--faint);font-size:11.5px;margin-left:6px}
+
   /* 系統健康度：大數字 + 目標線 + 達標徽章。
      每一項都必須有明確目標值——沒有目標的數字牆看久了會麻痺。 */
   .sec{margin-bottom:22px}
@@ -294,6 +318,10 @@
   <div id="viewRot" style="display:none">
     <div class="note" id="rotNote"></div>
     <div class="rotev" id="rotEvents"></div>
+    <div class="sechead"><div class="sectitle">變動解析</div>
+      <div class="secright">輪入、輪出各前三名＋狀態跨越的主題</div></div>
+    <div class="whygrid" id="rotWhy"></div>
+    <div class="sechead"><div class="sectitle">全部主題分數變化</div></div>
     <div class="rotwrap" id="rotChart"></div>
   </div>
 
@@ -674,15 +702,17 @@ function renderRotation(){
     ev.innerHTML = ""; box.innerHTML = ""; return;
   }
 
-  note.innerHTML = `<b>${r.from_date} → ${r.to_date}（${r.window_days} 個交易日）</b><br>
+  note.innerHTML = `<b>${r.from_date} → ${r.to_date}（${r.window_days} 個交易日）·
+    同期 SPY ${nn(r.spy_ret) ? sign(r.spy_ret) + '%' : '—'}</b><br>
     分數是同日橫斷面名次，所以變化天生零和——有主題上去必有主題下來，
-    這正好是「輪動」要看的東西。<b>絕對漲跌請看「主題動能」頁的大盤環境列</b>，
-    這裡回答的是資金在主題之間怎麼搬，不是市場整體漲跌。`;
+    這正好是「輪動」要看的東西。<b>「輪入」只代表排名往前，板塊本身不一定在漲</b>，
+    所以下方每個主題都附上它這週的絕對漲跌，跟同期 SPY 對照著看。`;
 
   // 狀態跨越比分數變化更值得看：動 3 分可能只是雜訊，
   // 但跨過門檻代表這個主題換了處境。
   const item = x => `<div class="item">${x.name}
-    <span>${x.state_prev} → ${x.state}　${sign(x.chg)} 分</span></div>`;
+    <span>${x.state_prev} → ${x.state}　${sign(x.chg)} 分${nn(x.ret)
+      ? `　板塊 ${sign(x.ret)}%` : ''}</span></div>`;
   ev.innerHTML = `
     <div class="rotcard up">
       <h4>狀態升級（${r.upgrades.length}）</h4>
@@ -714,10 +744,80 @@ function renderRotation(){
       background:${col};border-radius:${pos ? '0 3px 3px 0' : '3px 0 0 3px'}"></i>`;
     const rk = x.rank_chg === 0 ? `<span class="rk">名次持平</span>`
       : `<span class="rk">名次${x.rank_chg > 0 ? '+' : ''}${x.rank_chg}</span>`;
-    return `<div class="rotrow" title="${x.name}：目前 ${x.score} 分（第 ${x.rank} 名）">
+    const tip = `${x.name}：目前 ${x.score} 分（第 ${x.rank} 名）`
+      + (nn(x.ret) ? `，板塊本週 ${sign(x.ret)}%` : '');
+    return `<div class="rotrow" title="${tip}">
       <div class="rotname">${x.name}</div>
       <div class="rotbar">${bar}</div>
       <div class="rotval"><b class="${pos ? 'pos' : 'neg'}">${sign(x.chg)}</b>${rk}</div>
+    </div>`;
+  }).join("");
+
+  renderWhy(r);
+}
+
+// 外部抓來的新聞標題要先跳脫才能放進 innerHTML，否則等於讓外部內容
+// 直接插 HTML 進網頁。連結只接受 https，擋掉 javascript: 這類協定。
+const esc = s => String(s ?? "").replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl = u => /^https:\/\//i.test(u || "") ? esc(u) : null;
+
+// 變動解析：輪入、輪出各前三名＋狀態跨越的主題。
+// 先講價格事實，新聞只是同期出現的參考，不是因果——畫面上明白標示。
+function renderWhy(r){
+  const box = document.getElementById("rotWhy");
+  const seen = new Set(), picks = [];
+  [...(r.inflow||[]).slice(0,3), ...(r.outflow||[]).slice(0,3),
+   ...(r.upgrades||[]), ...(r.downgrades||[])].forEach(x => {
+    if (!seen.has(x.name)) { seen.add(x.name); picks.push(x); }
+  });
+  if (!picks.length) { box.innerHTML = `<div class="none">本週無明顯變動</div>`; return; }
+
+  // 新聞檔要跟這份輪動是同一週才用，避免顯示上一週的舊新聞
+  const cat = CATALYSTS && CATALYSTS.to_date === r.to_date ? CATALYSTS.themes || {} : null;
+
+  box.innerHTML = picks.map(x => {
+    const dir = x.chg >= 0 ? "up" : "down";
+    const crossed = x.crossed ? `${x.state_prev} → ${x.state}` : x.state;
+    const parts = [];
+    if (nn(x.ret)) {
+      const vs = nn(r.spy_ret) ? x.ret - r.spy_ret : null;
+      parts.push(`板塊本週 <b class="${x.ret >= 0 ? 'pos' : 'neg'}">${sign(x.ret)}%</b>`
+        + (vs !== null ? `，相對 SPY <b class="${vs >= 0 ? 'pos' : 'neg'}">${sign(vs)}pp</b>` : ''));
+    }
+    if (nn(x.n_total)) parts.push(`<b>${x.n_up}/${x.n_total}</b> 檔上漲`);
+    let facts = parts.join('　·　');
+    // 最容易誤讀的兩種情況，直接講白
+    if (nn(x.ret) && x.chg > 0 && x.ret < 0)
+      facts += `<br><span class="na">排名上升但板塊實際下跌——是跌得比其他主題少，不是在漲</span>`;
+    if (nn(x.ret) && x.chg < 0 && x.ret > 0)
+      facts += `<br><span class="na">排名下滑但板塊實際上漲——是漲得比其他主題少，不是在跌</span>`;
+
+    const drv = (x.drivers || []).map(d =>
+      `<span>${esc(d.t)} <b class="${d.ret >= 0 ? 'pos' : 'neg'}">${sign(d.ret)}%</b></span>`).join("");
+
+    let news = "";
+    if (cat) {
+      const items = cat[x.name] || [];
+      news = `<div class="whynews"><h5>同期相關新聞（時間相近，不代表就是原因）</h5>` +
+        (items.length ? items.map(h => {
+          const u = safeUrl(h.url);
+          const body = `${esc(h.title)}<span class="src">${esc(h.t)} · ${esc(h.source)}
+            ${h.date ? ' · ' + esc(h.date.slice(5)) : ''}</span>`;
+          return u ? `<a href="${u}" target="_blank" rel="noopener noreferrer">${body}</a>`
+                   : `<div class="na">${body}</div>`;
+        }).join("") : `<div class="na">查無相關新聞</div>`) + `</div>`;
+    }
+
+    return `<div class="why ${dir}">
+      <div class="whyhead">
+        <span class="whyname">${esc(x.name)}</span>
+        <span class="whytag">${crossed}</span>
+        <span class="whychg ${dir === 'up' ? 'pos' : 'neg'}">${dir === 'up' ? '輪入' : '輪出'} ${sign(x.chg)}</span>
+      </div>
+      <div class="whyfacts">${facts || '<span class="na">無價格資料</span>'}</div>
+      ${drv ? `<div class="whydrv">${drv}</div>` : ''}
+      ${news}
     </div>`;
   }).join("");
 }
@@ -977,6 +1077,7 @@ document.getElementById("histsub").querySelectorAll(".tab").forEach(b => b.oncli
 });
 
 let CHAIN = null;
+let CATALYSTS = null;   // 週輪動的同期新聞（catalysts.py 產出，可能不存在）
 
 function dirColor(d){
   if (d === "強勁擴張") return getCSS('--up');
@@ -1044,6 +1145,14 @@ document.querySelectorAll(".vtab").forEach(b => b.onclick = () => {
 
 fetch("twchain.json?" + Date.now())
   .then(r => r.ok ? r.json() : null).then(d => { CHAIN = d; }).catch(() => {});
+
+// 新聞檔是選配：抓不到就只顯示價格歸因，不影響其他部分
+fetch("catalysts.json?" + Date.now())
+  .then(r => r.ok ? r.json() : null)
+  .then(d => {
+    CATALYSTS = d;
+    if (DATA && document.getElementById("viewRot").style.display !== "none") renderRotation();
+  }).catch(() => {});
 
 fetch("history.json?" + Date.now())
   .then(r => r.ok ? r.json() : null)

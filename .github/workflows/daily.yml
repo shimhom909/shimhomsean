@@ -17,6 +17,7 @@ on:
       - radar.py
       - flows.py
       - twrev.py
+      - catalysts.py
       - index.html
       - requirements.txt
       - .github/workflows/daily.yml
@@ -125,6 +126,11 @@ jobs:
       - name: 抓資料並計算動能
         run: python radar.py
 
+      - name: 抓週輪動的同期新聞
+        # 外部服務（Google News RSS），失敗就只少了新聞，價格歸因照樣顯示
+        continue-on-error: true
+        run: python catalysts.py
+
       - name: 同步 Notion 潛力股評分表週摘要
         # 每次都呼叫，由 notion_sync.py 自己判斷：資料日是週五收盤（一週結束的
         # 快照）且這一天還沒寫過才寫。原本用「今天是週六」判斷，但排程延遲讓
@@ -152,6 +158,7 @@ jobs:
           [ -f history.json ] && cp history.json _site/ || true
           [ -f flows.json ] && cp flows.json _site/ || true
           [ -f twchain.json ] && cp twchain.json _site/ || true
+          [ -f catalysts.json ] && cp catalysts.json _site/ || true
 
       - uses: actions/upload-pages-artifact@v3
         with:
