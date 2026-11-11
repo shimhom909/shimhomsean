@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-15T00:30:56+00:00",
+ "generated_at": "2026-11-11T01:54:43+00:00",
  "period": "2026-09",
  "history_months": 3,
  "suppliers": {
@@ -151,6 +151,46 @@
    "accel": null,
    "history_months": 3,
    "name": "創意",
+   "market": "twse"
+  },
+  "3665": {
+   "yoy": 39.160349895962284,
+   "mom": 4.955090670566888,
+   "rev": 9332402.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "貿聯-KY",
+   "market": "twse"
+  },
+  "8996": {
+   "yoy": 153.7797417150323,
+   "mom": 34.23587525219427,
+   "rev": 1616110.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "高力",
+   "market": "twse"
+  },
+  "6282": {
+   "yoy": 23.590290047588955,
+   "mom": 3.3541602237041523,
+   "rev": 3833227.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "康舒",
+   "market": "twse"
+  },
+  "2454": {
+   "yoy": 1.9684131750496783,
+   "mom": -13.685578104892326,
+   "rev": 55399497.0,
+   "yoy_3m": null,
+   "accel": null,
+   "history_months": 1,
+   "name": "聯發科",
    "market": "twse"
   }
  },
@@ -457,6 +497,56 @@
      "name": "世芯-KY",
      "code": "3661",
      "yoy": 495.99846620911757
+    }
+   ]
+  },
+  "CRDO": {
+   "reading": 39.2,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 10,
+   "n_suppliers": 1,
+   "suppliers": [
+    {
+     "name": "貿聯-KY",
+     "code": "3665",
+     "yoy": 39.160349895962284
+    }
+   ]
+  },
+  "BE": {
+   "reading": 140.8,
+   "direction": "強勁擴張",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 25,
+   "n_suppliers": 2,
+   "suppliers": [
+    {
+     "name": "高力",
+     "code": "8996",
+     "yoy": 153.7797417150323
+    },
+    {
+     "name": "康舒",
+     "code": "6282",
+     "yoy": 23.590290047588955
+    }
+   ]
+  },
+  "ARM": {
+   "reading": 2.0,
+   "direction": "持平",
+   "accel": null,
+   "agreement": 100,
+   "confidence": 3,
+   "n_suppliers": 1,
+   "suppliers": [
+    {
+     "name": "聯發科",
+     "code": "2454",
+     "yoy": 1.9684131750496783
     }
    ]
   }
