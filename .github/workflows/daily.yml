@@ -21,6 +21,7 @@ on:
       - index.html
       - requirements.txt
       - .github/workflows/daily.yml
+      - party-racer/**
 
 permissions:
   contents: write   # 需要能把重新整理過的快取檔案 commit 回 repo
@@ -159,6 +160,10 @@ jobs:
           [ -f flows.json ] && cp flows.json _site/ || true
           [ -f twchain.json ] && cp twchain.json _site/ || true
           [ -f catalysts.json ] && cp catalysts.json _site/ || true
+          # 派對賽車遊戲：純靜態網頁，部署在 /party-racer/（不含測試檔）
+          mkdir -p _site/party-racer
+          cp -r party-racer/index.html party-racer/host.html party-racer/play.html \
+                party-racer/css party-racer/js party-racer/vendor _site/party-racer/
 
       - uses: actions/upload-pages-artifact@v3
         with:

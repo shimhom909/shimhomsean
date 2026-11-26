@@ -1,0 +1,11 @@
+{
+  "name": "party-racer",
+  "private": true,
+  "type": "module",
+  "description": "手機派對賽車：主機顯示賽道，朋友掃 QR code 用手機當搖桿",
+  "scripts": {
+    "test": "node --test tests/game.test.js",
+    "test:e2e": "node tests/e2e.browser.cjs",
+    "serve": "python3 -m http.server 8080"
+  }
+}

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#14151c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>派對賽車 · 搖桿</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="pad-page">
+
+<section id="c-join" class="screen center hidden">
+  <div class="logo">🏁 派對賽車</div>
+  <p>輸入主機畫面上的房間代碼</p>
+  <input id="code-input" class="code-input" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD">
+  <button id="code-btn" class="btn big primary">加入</button>
+  <p id="join-err" class="warn"></p>
+</section>
+
+<section id="c-connecting" class="screen center hidden">
+  <div class="spinner"></div>
+  <p id="conn-msg">連線中…</p>
+</section>
+
+<section id="c-setup" class="screen hidden">
+  <div class="setup">
+    <div class="setup-head">
+      <div class="logo small">🏁 派對賽車</div>
+      <span class="room-tag">房間 <b id="s-room"></b></span>
+    </div>
+    <label class="field">
+      <span class="field-label">名稱</span>
+      <input id="name-input" class="name-input" maxlength="10" placeholder="輸入你的名字" autocomplete="off" enterkeyhint="done">
+    </label>
+    <div class="field">
+      <span class="field-label">顏色</span>
+      <div id="color-list" class="color-list"></div>
+    </div>
+    <div class="field">
+      <span class="field-label">車款</span>
+      <div id="car-list" class="car-list"></div>
+    </div>
+  </div>
+  <div class="setup-foot"><button id="ready-btn" class="btn big primary">準備好了！</button></div>
+</section>
+
+<section id="c-wait" class="screen center hidden">
+  <canvas id="wait-car" class="wait-car"></canvas>
+  <h2 id="wait-name" class="wait-name"></h2>
+  <p id="wait-car-name" class="muted"></p>
+  <p id="wait-msg" class="wait-msg">等待主機開始比賽…</p>
+  <div id="wait-players" class="mini-players"></div>
+  <button id="edit-btn" class="btn">修改設定</button>
+</section>
+
+<section id="c-pad" class="screen hidden">
+  <div class="pad">
+    <div id="steer" class="steer">
+      <div class="steer-half" data-dir="-1"><span>◀</span></div>
+      <div class="steer-half" data-dir="1"><span>▶</span></div>
+    </div>
+    <div class="pad-info">
+      <div id="pad-pos" class="pad-pos">–</div>
+      <div id="pad-lap" class="pad-lap"></div>
+      <div id="pad-msg" class="pad-msg"></div>
+      <div class="nitro-meter"><div id="nitro-fill" class="nitro-fill"></div></div>
+    </div>
+    <div class="pedals">
+      <button id="btn-nitro" class="pbtn nitro"><span>氮氣</span></button>
+      <button id="btn-brake" class="pbtn brake"><span>煞車</span><small>倒車</small></button>
+      <button id="btn-gas" class="pbtn gas"><span>油門</span></button>
+    </div>
+  </div>
+</section>
+
+<section id="c-result" class="screen center hidden">
+  <div id="r-place" class="r-place"></div>
+  <div id="r-sub" class="muted"></div>
+  <div id="r-list" class="r-list"></div>
+  <p class="wait-msg">等待主機開下一場…</p>
+</section>
+
+<section id="c-error" class="screen center hidden">
+  <div class="logo">😵</div>
+  <p id="err-msg"></p>
+  <button id="err-btn" class="btn big primary">重新輸入代碼</button>
+</section>
+
+<div id="c-banner" class="banner hidden">連線中斷，重新連線中…</div>
+
+<script src="vendor/peerjs.min.js"></script>
+<script type="module" src="js/controller.js"></script>
+</body>
+</html>

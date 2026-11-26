@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14151c">
+<title>派對賽車 · 主機</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="host">
+
+<section id="h-boot" class="screen center">
+  <div class="spinner"></div>
+  <p id="h-boot-msg">建立房間中…</p>
+  <button id="h-retry" class="btn hidden" onclick="location.reload()">重新整理</button>
+</section>
+
+<section id="h-lobby" class="screen hidden">
+  <div class="lobby">
+    <div class="join-panel card">
+      <div class="logo">🏁 派對賽車</div>
+      <div class="qr-wrap"><canvas id="qr"></canvas></div>
+      <div class="room-code-label">房間代碼</div>
+      <div id="room-code" class="room-code">----</div>
+      <p class="hint">用手機相機掃描 QR code 加入<br>或開啟 <b id="join-url-short"></b> 輸入代碼</p>
+      <p id="local-warn" class="warn hidden"></p>
+    </div>
+    <div class="side">
+      <div class="card">
+        <div class="row-head">
+          <h2>玩家 <span id="p-count" class="muted">0/8</span></h2>
+          <div class="stepper"><span class="muted">電腦對手</span>
+            <button id="bot-minus" aria-label="減少電腦對手">−</button><b id="bot-count">0</b><button id="bot-plus" aria-label="增加電腦對手">＋</button>
+          </div>
+        </div>
+        <div id="player-list" class="player-list"></div>
+      </div>
+      <div class="card">
+        <div class="row-head">
+          <h2>賽道</h2>
+          <div class="stepper"><span class="muted">圈數</span>
+            <button id="lap-minus" aria-label="減少圈數">−</button><b id="lap-count">3</b><button id="lap-plus" aria-label="增加圈數">＋</button>
+          </div>
+        </div>
+        <div id="track-list" class="track-list"></div>
+      </div>
+      <button id="start-btn" class="btn big primary" disabled>開始比賽</button>
+      <p id="start-hint" class="hint"></p>
+    </div>
+  </div>
+  <div class="corner-buttons">
+    <button id="mute-btn" class="icon-btn" title="音效">🔊</button>
+    <button id="fs-btn" class="icon-btn" title="全螢幕">⛶</button>
+  </div>
+</section>
+
+<section id="h-race" class="screen hidden">
+  <canvas id="game"></canvas>
+  <div id="hud-standings" class="hud-standings"></div>
+  <div class="hud-top"><span id="hud-lap"></span><span id="hud-timer">0:00.0</span></div>
+  <div id="hud-count" class="hud-count"></div>
+  <div id="hud-toasts" class="hud-toasts"></div>
+  <div class="hud-buttons"><button id="end-btn" class="btn small">結束比賽</button><span class="hud-room">房間 <b id="hud-room"></b></span></div>
+  <div id="results" class="results hidden">
+    <div class="card results-card">
+      <h1>🏆 比賽結果</h1>
+      <div id="results-table" class="results-table"></div>
+      <div class="results-actions">
+        <button id="again-btn" class="btn big primary">再來一場</button>
+        <button id="lobby-btn" class="btn big">回大廳</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="net-status" class="net-status hidden"></div>
+
+<script src="vendor/peerjs.min.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script type="module" src="js/host.js"></script>
+</body>
+</html>
