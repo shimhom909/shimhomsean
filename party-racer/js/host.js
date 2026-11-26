@@ -5,7 +5,7 @@ import { buildTrack } from './track.js';
 import { Race } from './race.js';
 import { speedOf } from './physics.js';
 import { createHost, passthroughQuery } from './net.js';
-import { drawCar, drawCarPreview, drawTrackScene, drawTrackThumb, CAR_SIZE, isLight } from './render.js';
+import { drawCar, drawShowcase, drawTrackScene, drawTrackThumb, drawGantry, CAR_SIZE, INK } from './render.js';
 import { sfx, unlockAudio, setMuted, isMuted } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
@@ -43,9 +43,10 @@ function esc(s) {
 
 function fmtTime(t) {
   if (t == null) return '—';
-  const m = Math.floor(t / 60);
-  const s = t - m * 60;
-  return `${m}:${s.toFixed(1).padStart(4, '0')}`;
+  const cs = Math.floor(t * 100);
+  const m = Math.floor(cs / 6000);
+  const sec = Math.floor((cs % 6000) / 100);
+  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}.${String(cs % 100).padStart(2, '0')}`;
 }
 
 // ── 連線 ─────────────────────────────────────────────
@@ -297,41 +298,45 @@ function refreshLobby() {
   $('lap-count').textContent = S.laps;
   $('bot-plus').disabled = all.length >= MAX_PLAYERS;
 
+  // 等候室：固定 8 個位置，有人的顯示車子，沒人的顯示「等待加入」
   const list = $('player-list');
-  if (!all.length) {
-    list.innerHTML = '<div class="empty">還沒有人加入，快掃 QR code！</div>';
-  } else {
-    // 重用既有卡片，避免每次重畫閃爍
-    const existing = new Map([...list.querySelectorAll('.player-card')].map((el) => [el.dataset.id, el]));
-    list.querySelectorAll('.empty').forEach((e) => e.remove());
-    all.forEach((p, i) => {
-      let el = existing.get(p.id);
-      if (!el) {
-        el = document.createElement('div');
-        el.className = 'player-card';
-        el.dataset.id = p.id;
-        el.innerHTML = '<canvas></canvas><div class="pc-text"><div class="pc-name"></div><div class="pc-sub"></div></div><div class="pc-status"></div>';
-      }
-      existing.delete(p.id);
-      if (list.children[i] !== el) list.insertBefore(el, list.children[i] || null);
-      const car = carById(p.car);
-      el.querySelector('.pc-name').textContent = p.name;
-      el.querySelector('.pc-sub').textContent = `${car.name} · ${car.type}`;
-      const st = el.querySelector('.pc-status');
-      if (p.bot) { st.textContent = '電腦'; st.className = 'pc-status bot'; }
-      else if (!p.connected) { st.textContent = '斷線'; st.className = 'pc-status off'; }
-      else if (p.ready) { st.textContent = '準備好了'; st.className = 'pc-status ok'; }
-      else { st.textContent = '設定中…'; st.className = 'pc-status wait'; }
-      el.style.setProperty('--pc', p.color);
-      el.classList.toggle('disconnected', !p.connected);
-      const key = p.car + p.color;
-      const cv = el.querySelector('canvas');
-      if (cv.dataset.key !== key) {
-        requestAnimationFrame(() => { if (drawCarPreview(cv, car.shape, p.color, { angle: 0 })) cv.dataset.key = key; });
-      }
-    });
-    for (const el of existing.values()) el.remove();
+  const existing = new Map([...list.querySelectorAll('.player-card')].map((el) => [el.dataset.id, el]));
+  const nodes = [];
+  for (let i = 0; i < MAX_PLAYERS; i++) {
+    const p = all[i];
+    if (!p) {
+      const el = document.createElement('div');
+      el.className = 'slot empty';
+      el.innerHTML = `<div class="slot-no">P${i + 1}</div><div class="slot-plus">+</div><div class="slot-wait">等待加入</div>`;
+      nodes.push(el);
+      continue;
+    }
+    let el = existing.get(p.id);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'slot player-card';
+      el.dataset.id = p.id;
+      el.innerHTML = '<div class="slot-no"></div><div class="slot-badge"></div><canvas></canvas><div class="slot-name"></div><div class="slot-car"></div>';
+    }
+    const car = carById(p.car);
+    el.querySelector('.slot-no').textContent = 'P' + (i + 1);
+    el.querySelector('.slot-name').textContent = p.name;
+    el.querySelector('.slot-car').textContent = `${car.name} · ${car.type}`;
+    const st = el.querySelector('.slot-badge');
+    if (p.bot) { st.textContent = '電腦'; st.className = 'slot-badge bot'; }
+    else if (!p.connected) { st.textContent = '斷線'; st.className = 'slot-badge off'; }
+    else if (p.ready) { st.textContent = 'READY'; st.className = 'slot-badge ok'; }
+    else { st.textContent = '設定中'; st.className = 'slot-badge wait'; }
+    el.style.setProperty('--pc', p.color);
+    el.classList.toggle('disconnected', !p.connected);
+    const key = p.car + p.color;
+    const cv = el.querySelector('canvas');
+    if (cv.dataset.key !== key) {
+      requestAnimationFrame(() => { if (drawShowcase(cv, car.shape, p.color, -0.55)) cv.dataset.key = key; });
+    }
+    nodes.push(el);
   }
+  list.replaceChildren(...nodes);
 
   for (const b of $('track-list').children) b.classList.toggle('selected', b.dataset.id === S.trackId);
 
@@ -349,6 +354,7 @@ function backToLobby() {
   S.racers = [];
   S.results = null;
   for (const p of S.players.values()) p.ready = false;
+  stopConfetti();
   $('results').classList.add('hidden');
   show('h-lobby');
   refreshLobby();
@@ -380,6 +386,9 @@ function startRace() {
   S.phase = 'race';
   particles.length = 0;
   toasts.innerHTML = '';
+  finalLapShown = false;
+  $('hud-banner').className = 'hud-banner';
+  stopConfetti();
   $('results').classList.add('hidden');
   $('end-btn').classList.remove('hidden');
   $('hud-count').textContent = '';
@@ -392,23 +401,28 @@ function handleRaceEvents() {
   const race = S.race;
   for (const e of race.drainEvents()) {
     if (e.type === 'count') {
-      bigText(String(e.n));
+      bigText(String(e.n), 'c' + e.n);
       sfx.count();
       broadcast({ t: 'fx', k: 'count', n: e.n });
     } else if (e.type === 'go') {
-      bigText('GO!', true);
+      bigText('GO!', 'go');
       sfx.go();
       broadcast({ t: 'fx', k: 'go' });
     } else if (e.type === 'lap') {
       const car = race.cars.find((c) => c.id === e.id);
       if (car && !car.bot) {
-        toast(`${car.name} 進入第 ${e.lap} 圈（單圈 ${e.time.toFixed(1)} 秒）`, car.color);
+        toast(`${car.name} 進入第 ${e.lap} 圈（單圈 ${e.time.toFixed(2)} 秒）`, car.color);
         sfx.lap();
       }
-      sendTo(e.id, { t: 'fx', k: 'lap', lap: e.lap });
+      sendTo(e.id, { t: 'fx', k: 'lap', lap: e.lap, final: e.lap === race.laps });
+      if (e.lap === race.laps && !finalLapShown) {
+        finalLapShown = true;
+        banner('最後一圈！');
+      }
     } else if (e.type === 'finish') {
       const car = race.cars.find((c) => c.id === e.id);
       if (car) toast(`🏁 ${car.name} 第 ${e.place} 名抵達！`, car.color);
+      if (e.place === 1 && car) banner(`FINISH! ${car.name}`, 'finish');
       sfx.finish();
       sendTo(e.id, { t: 'fx', k: 'finish', place: e.place });
     } else if (e.type === 'bump') {
@@ -435,15 +449,71 @@ function showResults() {
   S.results = list;
   broadcast({ t: 'res', list });
   refreshLobby();
-  const medals = ['🥇', '🥈', '🥉'];
-  $('results-table').innerHTML = list.map((r) => `
+  const sub = (r) => (r.finished ? fmtTime(r.time) : `未完成 ${r.laps}/${S.race.laps} 圈`);
+  const pod = $('podium');
+  pod.innerHTML = '';
+  for (const place of [2, 1, 3]) {
+    const r = list[place - 1];
+    if (!r) continue;
+    const el = document.createElement('div');
+    el.className = 'pod p' + place;
+    el.style.setProperty('--pc', r.color);
+    el.innerHTML = `<canvas></canvas><div class="pod-name">${esc(r.name)}</div><div class="pod-time">${sub(r)}</div><div class="pod-block"><span class="pod-no">${place}</span></div>`;
+    pod.appendChild(el);
+  }
+  $('results-table').innerHTML = list.slice(3).map((r) => `
     <div class="res-row" style="--pc:${r.color}">
-      <div class="res-place">${medals[r.place - 1] || r.place}</div>
-      <div class="res-dot"></div>
-      <div class="res-name">${esc(r.name)}${r.bot ? ' <span class="tag">電腦</span>' : ''}<div class="res-car">${esc(carById(r.car).name)}</div></div>
-      <div class="res-time">${r.finished ? fmtTime(r.time) : `未完成（${r.laps}/${S.race.laps} 圈）`}<div class="res-best">最快單圈 ${r.best != null ? r.best.toFixed(1) + ' 秒' : '—'}</div></div>
+      <div class="res-place">${r.place}</div>
+      <div class="res-name">${esc(r.name)}${r.bot ? ' <span class="tag">電腦</span>' : ''}<div class="res-sub">${esc(carById(r.car).name)} · 最快單圈 ${r.best != null ? r.best.toFixed(2) + ' 秒' : '—'}</div></div>
+      <div class="res-time">${sub(r)}</div>
     </div>`).join('');
   $('results').classList.remove('hidden');
+  requestAnimationFrame(() => {
+    for (const el of pod.children) {
+      const r = list[+el.className.match(/p(\d)/)[1] - 1];
+      drawShowcase(el.querySelector('canvas'), carById(r.car).shape, r.color, -0.5);
+    }
+    startConfetti();
+  });
+}
+
+// ── 彩帶 ──
+let confettiRaf = null;
+function startConfetti() {
+  const cv = $('confetti');
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = cv.clientWidth * dpr;
+  cv.height = cv.clientHeight * dpr;
+  const g = cv.getContext('2d');
+  const colors = ['#ffd23f', '#ff4f5e', '#2fcf72', '#ffffff', '#8f5bff', '#ff9a1f'];
+  const bits = Array.from({ length: 140 }, () => ({
+    x: Math.random() * cv.width, y: -Math.random() * cv.height * 0.8,
+    vx: (Math.random() - 0.5) * 60 * dpr, vy: (80 + Math.random() * 120) * dpr,
+    r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 8,
+    w: (6 + Math.random() * 6) * dpr, h: (3 + Math.random() * 4) * dpr, c: colors[Math.floor(Math.random() * colors.length)],
+  }));
+  let lastT = performance.now();
+  const t0 = lastT;
+  const tick = (now) => {
+    const dt = Math.min(0.05, (now - lastT) / 1000);
+    lastT = now;
+    g.clearRect(0, 0, cv.width, cv.height);
+    for (const b of bits) {
+      b.x += b.vx * dt; b.y += b.vy * dt; b.r += b.vr * dt;
+      b.vx += Math.sin(now / 300 + b.r) * 20 * dt;
+      g.save(); g.translate(b.x, b.y); g.rotate(b.r);
+      g.fillStyle = b.c; g.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
+      g.restore();
+    }
+    if (now - t0 < 6000) confettiRaf = requestAnimationFrame(tick);
+    else g.clearRect(0, 0, cv.width, cv.height);
+  };
+  stopConfetti();
+  confettiRaf = requestAnimationFrame(tick);
+}
+function stopConfetti() {
+  if (confettiRaf) cancelAnimationFrame(confettiRaf);
+  confettiRaf = null;
 }
 
 // ── 畫面 ─────────────────────────────────────────────
@@ -471,7 +541,7 @@ function resize() {
 
   const b = bg.getContext('2d');
   b.setTransform(1, 0, 0, 1, 0, 0);
-  b.fillStyle = '#1b3d22';
+  b.fillStyle = '#3f9b4a';
   b.fillRect(0, 0, bg.width, bg.height);
   b.setTransform(...m);
   drawTrackScene(b, S.track);
@@ -551,30 +621,49 @@ function render() {
     ctx.restore();
   }
 
-  // 名牌（螢幕座標，不跟著賽道旋轉）
+  ctx.setTransform(...view.m);
+  drawGantry(ctx, S.track);
+
+  // 名牌（螢幕座標，不跟著賽道旋轉）：玩家顏色的膠囊＋名次徽章
   const order = race.standings();
   const pos = new Map(order.map((c, i) => [c.id, i + 1]));
   const fs = Math.max(10, Math.min(15, view.s * 18));
   ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
-  ctx.font = `700 ${fs}px system-ui, "PingFang TC", "Noto Sans TC", sans-serif`;
+  ctx.font = `900 ${fs}px system-ui, "PingFang TC", "Noto Sans TC", sans-serif`;
   ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  const medal = ['#ffcf33', '#d3deee', '#f3a66c'];
   for (const car of race.cars) {
     const [sx, sy] = toScreen(car.x, car.y);
-    const label = `${pos.get(car.id)} ${car.name}`;
-    const tw = ctx.measureText(label).width;
-    const y = sy - fs * 1.9;
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.beginPath();
-    ctx.roundRect ? ctx.roundRect(sx - tw / 2 - 6, y - fs * 0.7, tw + 12, fs * 1.4, fs * 0.7) : ctx.rect(sx - tw / 2 - 6, y - fs * 0.7, tw + 12, fs * 1.4);
-    ctx.fill();
+    const rank = pos.get(car.id);
+    const tw = ctx.measureText(car.name).width;
+    const h = fs * 1.5, br = h * 0.5;
+    const wTot = tw + 12 + h;
+    const x0 = sx - wTot / 2, y = sy - fs * 2.2;
+    // 小三角指向車子
+    ctx.fillStyle = INK;
+    ctx.beginPath(); ctx.moveTo(sx - 5, y + h / 2 - 1); ctx.lineTo(sx + 5, y + h / 2 - 1); ctx.lineTo(sx, y + h / 2 + 6); ctx.fill();
     ctx.fillStyle = car.color;
-    ctx.fillRect(sx - tw / 2 - 6, y + fs * 0.55, tw + 12, 2);
-    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x0, y - h / 2, wTot, h, br); else ctx.rect(x0, y - h / 2, wTot, h);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = medal[rank - 1] || '#ffffff';
+    ctx.beginPath(); ctx.arc(x0 + br, y, br - 1, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.textAlign = 'center';
-    ctx.fillText(label, sx, y);
+    ctx.fillStyle = INK;
+    ctx.fillText(String(rank), x0 + br, y + 0.5);
+    ctx.textAlign = 'left';
+    ctx.lineWidth = 3;
+    ctx.strokeText(car.name, x0 + h + 3, y + 0.5);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(car.name, x0 + h + 3, y + 0.5);
     if (car.wrongWay && !car.finished) {
-      ctx.fillStyle = '#ffeb3b';
-      ctx.fillText('⚠ 逆向', sx, sy + fs * 1.9);
+      ctx.textAlign = 'center';
+      ctx.strokeText('⚠ 逆向！', sx, sy + fs * 2);
+      ctx.fillStyle = '#ffd23f';
+      ctx.fillText('⚠ 逆向！', sx, sy + fs * 2);
     }
   }
 }
@@ -593,13 +682,23 @@ function toast(text, color) {
 }
 
 let bigTimer = null;
-function bigText(text, go) {
+function bigText(text, cls) {
   const el = $('hud-count');
   el.textContent = text;
-  el.className = 'hud-count pop' + (go ? ' go' : '');
-  void el.offsetWidth;
+  el.className = 'hud-count';
+  void el.offsetWidth;                       // 重新觸發動畫
+  el.className = 'hud-count pop ' + cls;
   clearTimeout(bigTimer);
-  bigTimer = setTimeout(() => { el.textContent = ''; }, go ? 900 : 1000);
+  bigTimer = setTimeout(() => { el.textContent = ''; el.className = 'hud-count'; }, 1000);
+}
+
+let finalLapShown = false;
+function banner(text, cls = '') {
+  const el = $('hud-banner');
+  el.querySelector('span').textContent = text;
+  el.className = 'hud-banner';
+  void el.offsetWidth;
+  el.className = 'hud-banner show ' + cls;
 }
 
 let hudAt = 0;
@@ -609,14 +708,14 @@ function updateHud(now) {
   const race = S.race;
   const order = race.standings();
   $('hud-standings').innerHTML = order.map((c, i) => `
-    <div class="st-row${c.finished ? ' done' : ''}" style="--pc:${c.color}">
-      <span class="st-pos">${i + 1}</span><span class="st-dot"></span>
-      <span class="st-name">${esc(c.name)}</span>
-      <span class="st-lap">${c.finished ? '🏁' : `${race.lap(c)}/${race.laps}`}</span>
+    <div class="rk-row rk-${i + 1}${c.finished ? ' done' : ''}" style="--pc:${c.color}">
+      <span class="rk-pos">${i + 1}</span>
+      <span class="rk-name">${esc(c.name)}</span>
+      <span class="rk-lap">${c.finished ? 'GOAL' : `${race.lap(c)}/${race.laps}`}</span>
     </div>`).join('');
   $('hud-timer').textContent = fmtTime(Math.max(0, race.time));
   const lead = order[0];
-  $('hud-lap').textContent = lead ? `第 ${race.lap(lead)} / ${race.laps} 圈` : '';
+  $('hud-lap').innerHTML = lead ? `${race.lap(lead)}<small>/${race.laps}</small>` : '';
 }
 
 let statusAt = 0;

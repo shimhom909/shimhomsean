@@ -2,7 +2,7 @@
 
 import { CARS, COLORS, FUN_NAMES, STAT_LABELS, carById } from './config.js';
 import { joinRoom, normalizeCode, passthroughQuery } from './net.js';
-import { drawCarPreview } from './render.js';
+import { drawShowcase, drawCarPreview } from './render.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -206,6 +206,7 @@ function showJoin(err) {
   net = null;
   everConnected = false;
   $('join-err').textContent = err || '';
+  $('join-err').classList.toggle('hidden', !err);
   $('code-input').value = room || '';
   show('c-join');
   setTimeout(() => $('code-input').focus(), 50);
@@ -213,7 +214,7 @@ function showJoin(err) {
 
 $('code-btn').onclick = () => {
   const code = normalizeCode($('code-input').value);
-  if (code.length < 4) { $('join-err').textContent = '代碼是 4 個字'; return; }
+  if (code.length < 4) { $('join-err').textContent = '代碼是 4 個字'; $('join-err').classList.remove('hidden'); return; }
   room = code;
   const extra = passthroughQuery();
   history.replaceState(null, '', `?room=${code}` + (extra ? '&' + extra : ''));
@@ -272,6 +273,21 @@ function renderColors() {
   document.documentElement.style.setProperty('--me', profile.color);
 }
 
+// 車庫：大展示台 + 左右切換（也可以左右滑）+ 下方縮圖
+function selectCar(id) {
+  if (profile.car === id) return;
+  profile.car = id;
+  saveProfile();
+  sendProfile();
+  renderCars();
+}
+
+function stepCar(d) {
+  const i = CARS.findIndex((c) => c.id === profile.car);
+  selectCar(CARS[(i + d + CARS.length) % CARS.length].id);
+  spin = -0.6;
+}
+
 function renderCars() {
   const list = $('car-list');
   if (!list.children.length) {
@@ -279,28 +295,54 @@ function renderCars() {
       const b = document.createElement('button');
       b.className = 'car-card';
       b.dataset.id = car.id;
-      const stats = Object.entries(car.stats).map(([k, v]) => `
-        <div class="stat"><span>${STAT_LABELS[k]}</span><div class="bar">${[1, 2, 3, 4, 5].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</div></div>`).join('');
-      b.innerHTML = `<canvas></canvas>
-        <div class="car-info"><div class="car-name">${car.name}<span class="car-type">${car.type}</span></div>
-        <div class="car-desc">${car.desc}</div><div class="stats">${stats}</div></div>`;
-      b.onclick = () => {
-        profile.car = car.id;
-        saveProfile();
-        sendProfile();
-        renderCars();
-      };
+      b.innerHTML = `<canvas></canvas><span>${car.name}</span>`;
+      b.onclick = () => { selectCar(car.id); spin = -0.6; };
       list.appendChild(b);
     }
   }
+  const car = carById(profile.car);
+  $('car-name').textContent = car.name;
+  $('car-type').textContent = car.type;
+  $('car-desc').textContent = car.desc;
+  $('car-stats').innerHTML = Object.entries(car.stats).map(([k, v]) =>
+    `<div class="stat"><span>${STAT_LABELS[k]}</span><div class="bar">${[1, 2, 3, 4, 5].map((i) => `<i class="${i <= v ? 'on' : ''}"></i>`).join('')}</div></div>`).join('');
   requestAnimationFrame(() => {
     for (const b of list.children) {
-      const car = carById(b.dataset.id);
-      b.classList.toggle('selected', car.id === profile.car);
-      drawCarPreview(b.querySelector('canvas'), car.shape, profile.color, { angle: -Math.PI / 2 });
+      const c = carById(b.dataset.id);
+      b.classList.toggle('selected', c.id === profile.car);
+      drawCarPreview(b.querySelector('canvas'), c.shape, profile.color, { angle: -Math.PI / 2, scale: 0.8 });
     }
   });
 }
+
+$('car-prev').onclick = () => stepCar(-1);
+$('car-next').onclick = () => stepCar(1);
+{
+  let sx = null;
+  const sc = $('showcase');
+  sc.addEventListener('pointerdown', (e) => { sx = e.clientX; });
+  sc.addEventListener('pointerup', (e) => {
+    if (sx != null && Math.abs(e.clientX - sx) > 40) stepCar(e.clientX < sx ? 1 : -1);
+    sx = null;
+  });
+  sc.addEventListener('pointercancel', () => { sx = null; });
+}
+
+// 展示台慢慢旋轉（只在車庫和等待畫面跑，比賽時不耗電）
+let spin = -0.6;
+let spinLast = 0;
+function spinLoop(now) {
+  const dt = Math.min(0.05, (now - spinLast) / 1000 || 0);
+  spinLast = now;
+  if (current === 'c-setup' || current === 'c-wait') {
+    spin += dt * 0.9;
+    const car = carById(profile.car);
+    if (current === 'c-setup') drawShowcase($('showcase'), car.shape, profile.color, spin);
+    else drawShowcase($('wait-car'), car.shape, profile.color, spin);
+  }
+  requestAnimationFrame(spinLoop);
+}
+requestAnimationFrame(spinLoop);
 
 let nameTimer = null;
 $('name-input').addEventListener('input', (e) => {
@@ -345,13 +387,16 @@ function renderWait() {
   $('wait-name').textContent = name;
   $('wait-car-name').textContent = `${car.name} · ${car.type}`;
   document.documentElement.style.setProperty('--me', profile.color);
-  drawCarPreview($('wait-car'), car.shape, profile.color, { angle: -Math.PI / 2 });
+  $('w-room').textContent = room;
   const racing = lobby && lobby.phase !== 'lobby' && !lobby.racers.includes(cid);
+  $('ready-stamp').classList.toggle('hidden', !!racing);
   $('wait-msg').textContent = racing ? '比賽進行中，下一場就能加入！' : '等待主機開始比賽…';
   $('edit-btn').classList.toggle('hidden', !!racing);
   $('wait-players').innerHTML = lobby ? lobby.players.map((p) =>
     `<span class="mini" style="--pc:${p.color}" title="${p.bot ? '電腦' : ''}">${escapeHtml(p.name)}${p.ready && !p.bot ? ' ✓' : ''}</span>`).join('') : '';
 }
+
+const ORD = (n) => (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -386,7 +431,11 @@ function enterPad() {
   for (const k of Object.keys(input)) input[k] = 0;
   releaseAll();
   $('pad-pos').textContent = '–';
-  $('pad-lap').textContent = '';
+  $('pad-pos').className = 'pad-pos';
+  $('pad-lap').textContent = 'LAP –';
+  $('pad-name').textContent = (me() && me().name) || profile.name || placeholderName;
+  $('pad-speed').textContent = '0';
+  $('speedo-val').setAttribute('stroke-dasharray', '0 100');
   $('pad-msg').textContent = '準備…';
   $('pad-msg').className = 'pad-msg';
   document.documentElement.style.setProperty('--me', profile.color);
@@ -491,11 +540,17 @@ addEventListener('keyup', (e) => {
 
 function onStatus(m) {
   if (current !== 'c-pad') return;
-  $('pad-pos').innerHTML = `${m.p}<small>/${m.n}</small>`;
-  $('pad-lap').textContent = m.f ? '完成！' : `第 ${m.l} / ${m.L} 圈`;
-  $('nitro-fill').style.width = `${Math.round(m.ni * 100)}%`;
-  $('btn-nitro').classList.toggle('empty', m.ni < 0.1);
-  $('btn-nitro').classList.toggle('boosting', !!m.bo);
+  const pos = $('pad-pos');
+  pos.innerHTML = `${m.p}<sup>${ORD(m.p)}</sup><small>/${m.n}</small>`;
+  pos.className = 'pad-pos' + (m.p <= 3 ? ' p' + m.p : '');
+  $('pad-lap').textContent = m.f ? 'GOAL!' : `LAP ${m.l}/${m.L}`;
+  const kmh = Math.round((m.sp || 0) * 0.72);
+  $('pad-speed').textContent = kmh;
+  $('speedo-val').setAttribute('stroke-dasharray', `${Math.min(100, (kmh / 260) * 100).toFixed(1)} 100`);
+  const nb = $('btn-nitro');
+  nb.style.setProperty('--charge', m.ni);
+  nb.classList.toggle('full', m.ni >= 0.99 && !m.bo);
+  nb.classList.toggle('boosting', !!m.bo);
   const msg = $('pad-msg');
   if (m.ph === 'count') { msg.textContent = m.c > 0 ? String(m.c) : ''; msg.className = 'pad-msg count'; }
   else if (m.f) { msg.textContent = `🏁 第 ${m.f} 名`; msg.className = 'pad-msg done'; }
@@ -503,13 +558,25 @@ function onStatus(m) {
   else if (msg.classList.contains('count') || msg.classList.contains('warn')) { msg.textContent = ''; msg.className = 'pad-msg'; }
 }
 
+// 跳一下就消失的訊息（GO!、圈數）
+function flashMsg(text) {
+  const msg = $('pad-msg');
+  msg.textContent = text;
+  msg.className = 'pad-msg';
+  void msg.offsetWidth;
+  msg.className = 'pad-msg go';
+}
+
 function onFx(m) {
   if (m.k === 'count') vibrate(40);
   else if (m.k === 'go') {
     vibrate(150);
-    if (current === 'c-pad') { $('pad-msg').textContent = 'GO!'; $('pad-msg').className = 'pad-msg go'; }
+    if (current === 'c-pad') flashMsg('GO!');
   } else if (m.k === 'bump') vibrate(Math.min(80, 15 + (m.p || 0) / 4));
-  else if (m.k === 'lap') vibrate([40, 40, 40]);
+  else if (m.k === 'lap') {
+    vibrate([40, 40, 40]);
+    if (current === 'c-pad' && !$('pad-msg').classList.contains('warn')) flashMsg(m.final ? '最後一圈！' : `LAP ${m.lap}`);
+  }
   else if (m.k === 'finish') vibrate([100, 60, 100, 60, 200]);
 }
 
@@ -519,16 +586,18 @@ function showResult() {
   releaseAll();
   for (const k of Object.keys(input)) input[k] = 0;
   const mine = results && results.find((r) => r.id === cid);
-  const medals = ['🥇', '🥈', '🥉'];
+  const rp = $('r-place');
   if (mine) {
-    $('r-place').innerHTML = `${medals[mine.place - 1] || ''} 第 ${mine.place} 名`;
-    $('r-sub').textContent = mine.finished ? `完成時間 ${mine.time.toFixed(1)} 秒` : '沒能在時間內完成';
+    rp.innerHTML = `${mine.place}<sup>${ORD(mine.place)}</sup>`;
+    rp.className = 'r-place' + (mine.place <= 3 ? ' p' + mine.place : '');
+    $('r-sub').textContent = mine.finished ? `完成時間 ${mine.time.toFixed(2)} 秒` : '沒能在時間內完成';
   } else {
-    $('r-place').textContent = '比賽結束';
+    rp.textContent = 'FINISH';
+    rp.className = 'r-place';
     $('r-sub').textContent = '';
   }
   $('r-list').innerHTML = (results || []).map((r) =>
-    `<div class="r-row${r.id === cid ? ' me' : ''}" style="--pc:${r.color}"><b>${r.place}</b><i></i><span>${escapeHtml(r.name)}</span><em>${r.finished ? r.time.toFixed(1) + 's' : '—'}</em></div>`).join('');
+    `<div class="r-row${r.id === cid ? ' me' : ''}" style="--pc:${r.color}"><b>${r.place}</b><i></i><span>${escapeHtml(r.name)}</span><em>${r.finished ? r.time.toFixed(2) + 's' : '—'}</em></div>`).join('');
   show('c-result');
 }
 

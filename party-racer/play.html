@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#14151c">
+<meta name="theme-color" content="#4fb1ff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <title>派對賽車 · 搖桿</title>
@@ -12,44 +12,62 @@
 <body class="pad-page">
 
 <section id="c-join" class="screen center hidden">
-  <div class="logo">🏁 派對賽車</div>
-  <p>輸入主機畫面上的房間代碼</p>
-  <input id="code-input" class="code-input" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD">
-  <button id="code-btn" class="btn big primary">加入</button>
-  <p id="join-err" class="warn"></p>
+  <div class="logo"><i class="flag"></i><span>派對賽車</span></div>
+  <div class="panel join-card">
+    <div class="panel-title orange"><span>加入房間</span></div>
+    <p class="muted" style="margin:0">輸入主機畫面上的房間代碼</p>
+    <input id="code-input" class="code-input" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD">
+    <button id="code-btn" class="btn go big">加入</button>
+    <p id="join-err" class="warn hidden"></p>
+  </div>
 </section>
 
 <section id="c-connecting" class="screen center hidden">
   <div class="spinner"></div>
-  <p id="conn-msg">連線中…</p>
+  <p id="conn-msg" class="hint">連線中…</p>
 </section>
 
 <section id="c-setup" class="screen hidden">
   <div class="setup">
     <div class="setup-head">
-      <div class="logo small">🏁 派對賽車</div>
+      <div class="logo small"><i class="flag"></i><span>派對賽車</span></div>
       <span class="room-tag">房間 <b id="s-room"></b></span>
     </div>
-    <label class="field">
-      <span class="field-label">名稱</span>
-      <input id="name-input" class="name-input" maxlength="10" placeholder="輸入你的名字" autocomplete="off" enterkeyhint="done">
-    </label>
-    <div class="field">
-      <span class="field-label">顏色</span>
-      <div id="color-list" class="color-list"></div>
+    <div class="panel garage">
+      <div class="panel-title"><span>車庫</span></div>
+      <div class="showcase">
+        <button id="car-prev" class="arrow-btn" aria-label="上一台">◀</button>
+        <canvas id="showcase"></canvas>
+        <button id="car-next" class="arrow-btn" aria-label="下一台">▶</button>
+      </div>
+      <div class="car-title"><span id="car-name" class="car-name"></span><span id="car-type" class="car-type"></span></div>
+      <div id="car-desc" class="car-desc"></div>
+      <div id="car-stats" class="stats"></div>
+      <div id="car-list" class="car-thumbs"></div>
     </div>
-    <div class="field">
-      <span class="field-label">車款</span>
-      <div id="car-list" class="car-list"></div>
+    <div class="panel">
+      <div class="panel-title pink"><span>車手</span></div>
+      <label class="field">
+        <span class="field-label">名稱</span>
+        <input id="name-input" class="name-input" maxlength="10" placeholder="輸入你的名字" autocomplete="off" enterkeyhint="done">
+      </label>
+      <div class="field">
+        <span class="field-label">烤漆顏色</span>
+        <div id="color-list" class="color-list"></div>
+      </div>
     </div>
   </div>
-  <div class="setup-foot"><button id="ready-btn" class="btn big primary">準備好了！</button></div>
+  <div class="setup-foot"><button id="ready-btn" class="btn go big">準備好了！</button></div>
 </section>
 
 <section id="c-wait" class="screen center hidden">
-  <canvas id="wait-car" class="wait-car"></canvas>
-  <h2 id="wait-name" class="wait-name"></h2>
-  <p id="wait-car-name" class="muted"></p>
+  <div class="panel wait-panel">
+    <div class="panel-title"><span>房間 <b id="w-room"></b></span></div>
+    <div id="ready-stamp" class="ready-stamp">READY!</div>
+    <canvas id="wait-car" class="wait-car"></canvas>
+    <h2 id="wait-name" class="wait-name"></h2>
+    <p id="wait-car-name" class="wait-carname"></p>
+  </div>
   <p id="wait-msg" class="wait-msg">等待主機開始比賽…</p>
   <div id="wait-players" class="mini-players"></div>
   <button id="edit-btn" class="btn">修改設定</button>
@@ -58,34 +76,51 @@
 <section id="c-pad" class="screen hidden">
   <div class="pad">
     <div id="steer" class="steer">
-      <div class="steer-half" data-dir="-1"><span>◀</span></div>
-      <div class="steer-half" data-dir="1"><span>▶</span></div>
+      <div class="steer-half" data-dir="-1"><span class="arrow">◀</span></div>
+      <div class="steer-half" data-dir="1"><span class="arrow">▶</span></div>
     </div>
     <div class="pad-info">
+      <div id="pad-name" class="pad-name"></div>
       <div id="pad-pos" class="pad-pos">–</div>
-      <div id="pad-lap" class="pad-lap"></div>
+      <div id="pad-lap" class="pad-lap">LAP –</div>
+      <div class="speedo">
+        <svg viewBox="0 0 120 92">
+          <defs>
+            <linearGradient id="speedo-grad" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0" stop-color="#2fcf72"/><stop offset=".6" stop-color="#ffd23f"/><stop offset="1" stop-color="#ff4f5e"/>
+            </linearGradient>
+          </defs>
+          <path class="track" d="M 21 82.5 A 45 45 0 1 1 99 82.5" pathLength="100"/>
+          <path id="speedo-val" class="val" d="M 21 82.5 A 45 45 0 1 1 99 82.5" pathLength="100" stroke-dasharray="0 100"/>
+        </svg>
+        <div class="speedo-num"><b id="pad-speed">0</b><small>km/h</small></div>
+      </div>
       <div id="pad-msg" class="pad-msg"></div>
-      <div class="nitro-meter"><div id="nitro-fill" class="nitro-fill"></div></div>
     </div>
     <div class="pedals">
-      <button id="btn-nitro" class="pbtn nitro"><span>氮氣</span></button>
-      <button id="btn-brake" class="pbtn brake"><span>煞車</span><small>倒車</small></button>
+      <button id="btn-nitro" class="pbtn nitro"><i class="charge"></i><span>氮氣</span></button>
+      <button id="btn-brake" class="pbtn brake"><span>煞車</span><small>停下後按住＝倒車</small></button>
       <button id="btn-gas" class="pbtn gas"><span>油門</span></button>
     </div>
   </div>
 </section>
 
 <section id="c-result" class="screen center hidden">
-  <div id="r-place" class="r-place"></div>
-  <div id="r-sub" class="muted"></div>
-  <div id="r-list" class="r-list"></div>
+  <div class="panel result-panel">
+    <div class="panel-title orange"><span>比賽結果</span></div>
+    <div id="r-place" class="r-place"></div>
+    <div id="r-sub" class="r-sub"></div>
+    <div id="r-list" class="r-list"></div>
+  </div>
   <p class="wait-msg">等待主機開下一場…</p>
 </section>
 
 <section id="c-error" class="screen center hidden">
-  <div class="logo">😵</div>
-  <p id="err-msg"></p>
-  <button id="err-btn" class="btn big primary">重新輸入代碼</button>
+  <div class="panel result-panel">
+    <div class="panel-title pink"><span>哎呀</span></div>
+    <p id="err-msg" style="margin:6px 0 10px;line-height:1.6"></p>
+    <button id="err-btn" class="btn go big">重新輸入代碼</button>
+  </div>
 </section>
 
 <div id="c-banner" class="banner hidden">連線中斷，重新連線中…</div>

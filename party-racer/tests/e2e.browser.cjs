@@ -73,16 +73,21 @@ function check(cond, msg) {
     for (const p of phones) await p.waitForSelector('#c-pad:not(.hidden)', { timeout: 3000 });
     check(true, '開始比賽後手機切換成搖桿');
 
-    await host.waitForTimeout(3300);
+    await host.waitForFunction(() => window.__host.race && window.__host.race.state === 'running', null, { timeout: 6000 });
+    const progOf = () => host.evaluate(() => window.__host.race.cars.find((x) => x.name === '阿明').prog);
+    const p0 = await progOf();
+    // 阿明用觸控按住油門；另一位用鍵盤也一起開，免得停著的車擋在前面
     const gas = await (await a.$('#btn-gas')).boundingBox();
     await a.mouse.move(gas.x + gas.width / 2, gas.y + gas.height / 2);
     await a.mouse.down();
-    await host.waitForTimeout(1200);
+    await b.keyboard.down('ArrowUp');
+    await host.waitForTimeout(1500);
     const car = await host.evaluate(() => {
       const c = window.__host.race.cars.find((x) => x.name === '阿明');
-      return { g: c.input.g, sp: Math.hypot(c.vx, c.vy) };
+      return { g: c.input.g, sp: Math.round(Math.hypot(c.vx, c.vy)), prog: c.prog };
     });
-    check(car.g === 1 && car.sp > 100, `按住油門車子會跑（速度 ${car.sp.toFixed(0)}）`);
+    check(car.g === 1 && car.prog - p0 > 60, `按住油門車子會往前跑（前進 ${(car.prog - p0).toFixed(0)}，速度 ${car.sp}）`);
+    await b.keyboard.up('ArrowUp');
     await a.mouse.up();
     await a.waitForFunction(() => /\d/.test(document.getElementById('pad-pos').textContent));
     check(true, '手機上顯示名次');

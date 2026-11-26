@@ -2,6 +2,8 @@
 
 import { WORLD } from './config.js';
 
+export const INK = '#17244a';   // 卡通風格的深藍描邊色
+
 // ── 顏色工具 ──
 function hexToRgb(hex) {
   const h = hex.replace('#', '');
@@ -47,7 +49,7 @@ export function drawCar(ctx, shape, color, fx = {}) {
   const dark = shade(color, -0.35);
   const light = shade(color, 0.35);
   const glass = '#1d2b44';
-  const outline = 'rgba(0,0,0,0.55)';
+  const outline = INK;
   ctx.lineJoin = 'round';
 
   // 陰影
@@ -76,7 +78,7 @@ export function drawCar(ctx, shape, color, fx = {}) {
     }
   }
 
-  ctx.lineWidth = 1.4;
+  ctx.lineWidth = 1.8;
   ctx.strokeStyle = outline;
 
   if (shape === 'sport') {
@@ -153,16 +155,72 @@ export function drawCar(ctx, shape, color, fx = {}) {
   ctx.fillRect(-sz.l / 2 - 0.5, sz.w / 2 - 5, 2, 3);
 }
 
-// 在一個 canvas 上畫車款預覽（選車畫面、大廳）
-// 回傳 false 表示 canvas 目前看不到（所在畫面隱藏中），沒有畫
-export function drawCarPreview(canvas, shape, color, { angle = -Math.PI / 2, scale } = {}) {
+// ── 車款展示（選車畫面、大廳）：車子停在一個圓形展示台上，稍微斜看 ──
+
+function fitCanvas(canvas) {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const w = canvas.clientWidth, h = canvas.clientHeight;
-  if (!w || !h) return false;
+  if (!w || !h) return null;
   if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
   }
+  return { dpr, w, h };
+}
+
+// 回傳 false 表示 canvas 目前看不到（所在畫面隱藏中），沒有畫
+export function drawShowcase(canvas, shape, color, angle = -0.6, { platform = true } = {}) {
+  const fit = fitCanvas(canvas);
+  if (!fit) return false;
+  const { dpr, w, h } = fit;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const cx = w / 2;
+  const tilt = 0.55;                                  // 斜看的壓扁比例
+  // 展示台貼齊畫布底部，台面＋側面高度 = rx × (2×tilt + 0.12)
+  const rx = Math.min(w * 0.46, (h - 8) / (2 * tilt + 0.14));
+  const ry = rx * tilt;
+  const band = rx * 0.12;
+  const cy = h - 5 - band - ry;
+  if (platform) {
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = INK;
+    // 台座側面
+    ctx.fillStyle = '#5b6b9a';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + band, rx, ry, 0, 0, Math.PI);
+    ctx.lineTo(cx - rx, cy);
+    ctx.ellipse(cx, cy, rx, ry, 0, Math.PI, 0, true);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // 台面
+    const g = ctx.createRadialGradient(cx, cy - ry * 0.3, rx * 0.1, cx, cy, rx);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(1, '#cfe3ff');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = 'rgba(23,36,74,0.18)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx * 0.72, ry * 0.72, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+  const sz = CAR_SIZE[shape] || CAR_SIZE.coupe;
+  const k = (rx * 1.25) / Math.max(sz.l, 30);
+  ctx.save();
+  ctx.translate(cx, cy - rx * 0.05);
+  ctx.scale(k, k * tilt);
+  ctx.rotate(angle);
+  drawCar(ctx, shape, color);
+  ctx.restore();
+  return true;
+}
+
+// 舊名稱保留：純俯視的小圖
+export function drawCarPreview(canvas, shape, color, { angle = -Math.PI / 2, scale } = {}) {
+  const fit = fitCanvas(canvas);
+  if (!fit) return false;
+  const { dpr, w, h } = fit;
   const ctx = canvas.getContext('2d');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -190,67 +248,116 @@ function tracePath(ctx, track) {
   ctx.closePath();
 }
 
-// 隨機但固定的樹木位置（離賽道夠遠才種）
-function treesFor(track) {
-  if (track._trees) return track._trees;
-  const rand = seeded(track.id.split('').reduce((a, c) => a * 31 + c.charCodeAt(0), 7));
-  const trees = [];
-  const minD = track.half + track.runoff + 26;
-  for (let k = 0; k < 900 && trees.length < 70; k++) {
-    const x = 30 + rand() * (WORLD.w - 60), y = 30 + rand() * (WORLD.h - 60);
-    let ok = true;
-    for (let i = 0; i < track.n; i += 2) {
-      const dx = x - track.pts[i].x, dy = y - track.pts[i].y;
-      if (dx * dx + dy * dy < minD * minD) { ok = false; break; }
-    }
-    if (ok && trees.every((t) => Math.hypot(t.x - x, t.y - y) > 46)) trees.push({ x, y, r: 14 + rand() * 12 });
+function farFromTrack(track, x, y, minD) {
+  for (let i = 0; i < track.n; i += 2) {
+    const dx = x - track.pts[i].x, dy = y - track.pts[i].y;
+    if (dx * dx + dy * dy < minD * minD) return false;
   }
-  track._trees = trees;
-  return trees;
+  return true;
+}
+
+// 場景裝飾（樹、輪胎堆、小花）：隨機但固定，每條賽道算一次
+function decorFor(track) {
+  if (track._decor) return track._decor;
+  const rand = seeded(track.id.split('').reduce((a, c) => a * 31 + c.charCodeAt(0), 7));
+  const wall = track.half + track.runoff;
+  const tires = [];
+  // 急彎外側擺輪胎堆
+  for (let i = 0; i < track.n; i += 9) {
+    if (track.curv[i] < 0.0055) continue;
+    const a = (i - 3 + track.n) % track.n, b = (i + 3) % track.n;
+    let d = Math.atan2(track.ty[b], track.tx[b]) - Math.atan2(track.ty[a], track.tx[a]);
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    const side = d > 0 ? -1 : 1;                    // 右彎的外側在左邊
+    const off = side * (wall + 22);
+    const x = track.pts[i].x + track.nx[i] * off, y = track.pts[i].y + track.ny[i] * off;
+    if (x < 20 || y < 20 || x > WORLD.w - 20 || y > WORLD.h - 20) continue;
+    if (!farFromTrack(track, x, y, wall + 14)) continue;
+    if (tires.some((t) => Math.hypot(t.x - x, t.y - y) < 40)) continue;
+    tires.push({ x, y, a: Math.atan2(track.ty[i], track.tx[i]) });
+  }
+  const trees = [];
+  for (let k = 0; k < 1200 && trees.length < 60; k++) {
+    const x = 30 + rand() * (WORLD.w - 60), y = 30 + rand() * (WORLD.h - 60);
+    if (!farFromTrack(track, x, y, wall + 34)) continue;
+    if (tires.some((t) => Math.hypot(t.x - x, t.y - y) < 40)) continue;
+    if (trees.every((t) => Math.hypot(t.x - x, t.y - y) > 50)) trees.push({ x, y, r: 15 + rand() * 11 });
+  }
+  const flowers = [];
+  const fc = ['#ffffff', '#ffd23f', '#ff7eb6', '#ffffff', '#7fd3ff'];
+  for (let k = 0; k < 600 && flowers.length < 140; k++) {
+    const x = rand() * WORLD.w, y = rand() * WORLD.h;
+    if (farFromTrack(track, x, y, wall + 16)) flowers.push({ x, y, c: fc[k % fc.length] });
+  }
+  track._decor = { tires, trees, flowers };
+  return track._decor;
 }
 
 // 在 ctx 目前的「世界座標」變換下畫出整個賽道（背景層，畫一次快取起來）
 export function drawTrackScene(ctx, track, { detail = true } = {}) {
   const W = WORLD.w, H = WORLD.h;
-  // 草地＋割草條紋
-  ctx.fillStyle = '#3f9b4a';
+  // 卡通草皮：兩種綠色的大格子
+  ctx.fillStyle = '#5ccb58';
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#46a852';
-  for (let x = 0; x < W; x += 120) ctx.fillRect(x, 0, 60, H);
+  ctx.fillStyle = '#69d664';
+  const cell = 100;
+  for (let y = 0; y < H; y += cell) {
+    for (let x = ((y / cell) % 2) * cell; x < W; x += cell * 2) ctx.fillRect(x, y, cell, cell);
+  }
+
+  const deco = decorFor(track);
+  if (detail) {
+    for (const f of deco.flowers) {
+      ctx.fillStyle = f.c;
+      ctx.beginPath(); ctx.arc(f.x, f.y, 2.6, 0, Math.PI * 2); ctx.fill();
+    }
+  }
 
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
-
-  // 護欄（紅白輪胎牆）→ 砂石緩衝區 → 路緣石 → 柏油
   tracePath(ctx, track);
-  ctx.lineWidth = track.width + track.runoff * 2 + 22;
-  ctx.strokeStyle = '#d32f2f';
+  const outer = track.width + track.runoff * 2;
+
+  // 護欄：深色描邊 + 紅白相間
+  ctx.lineWidth = outer + 30;
+  ctx.strokeStyle = INK;
   ctx.stroke();
-  ctx.setLineDash([18, 18]);
-  ctx.strokeStyle = '#f5f5f5';
+  ctx.lineWidth = outer + 22;
+  ctx.strokeStyle = '#ff4f5e';
+  ctx.stroke();
+  ctx.setLineDash([22, 22]);
+  ctx.strokeStyle = '#ffffff';
   ctx.stroke();
   ctx.setLineDash([]);
 
-  ctx.lineWidth = track.width + track.runoff * 2;
-  ctx.strokeStyle = '#d9c48c';
+  // 砂石緩衝區
+  ctx.lineWidth = outer;
+  ctx.strokeStyle = '#f4d98f';
   ctx.stroke();
 
-  ctx.lineWidth = track.width + 12;
-  ctx.strokeStyle = '#e53935';
+  // 路緣石
+  ctx.lineWidth = track.width + 16;
+  ctx.strokeStyle = '#ff4f5e';
   ctx.stroke();
-  ctx.setLineDash([12, 12]);
-  ctx.strokeStyle = '#fafafa';
+  ctx.setLineDash([14, 14]);
+  ctx.strokeStyle = '#ffffff';
   ctx.stroke();
   ctx.setLineDash([]);
 
+  // 柏油＋內側白邊線
   ctx.lineWidth = track.width;
-  ctx.strokeStyle = '#50535c';
+  ctx.strokeStyle = '#5a6278';
   ctx.stroke();
-
   if (detail) {
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
-    ctx.setLineDash([20, 24]);
+    ctx.lineWidth = track.width - 8;
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.stroke();
+    ctx.lineWidth = track.width - 13;
+    ctx.strokeStyle = '#5a6278';
+    ctx.stroke();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(255,210,63,0.75)';
+    ctx.setLineDash([24, 26]);
     ctx.stroke();
     ctx.setLineDash([]);
   }
@@ -264,67 +371,122 @@ export function drawTrackScene(ctx, track, { detail = true } = {}) {
   const cells = 10, cw = track.width / cells;
   for (let r = 0; r < 2; r++) {
     for (let c = 0; c < cells; c++) {
-      ctx.fillStyle = (r + c) % 2 ? '#111' : '#fff';
+      ctx.fillStyle = (r + c) % 2 ? '#17244a' : '#fff';
       ctx.fillRect(-cw + r * cw, -track.half + c * cw, cw, cw);
     }
   }
   ctx.restore();
 
-  if (detail) {
-    // 起跑格
-    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-    ctx.lineWidth = 2;
-    for (let slot = 0; slot < 8; slot++) {
-      const back = 34 + Math.floor(slot / 2) * 44;
-      const idx = (track.n - Math.round(back / track.ds) + track.n) % track.n;
-      const side = slot % 2 === 0 ? -1 : 1;
-      const off = side * track.width * 0.22;
-      const p = track.pts[idx];
-      ctx.save();
-      ctx.translate(p.x + track.nx[idx] * off, p.y + track.ny[idx] * off);
-      ctx.rotate(Math.atan2(track.ty[idx], track.tx[idx]));
-      ctx.beginPath();
-      ctx.moveTo(22, -12); ctx.lineTo(22, 12);
-      ctx.moveTo(22, -12); ctx.lineTo(10, -12);
-      ctx.moveTo(22, 12); ctx.lineTo(10, 12);
-      ctx.stroke();
-      ctx.restore();
-    }
+  if (!detail) return;
 
-    // 行進方向箭頭（起點後方一點）
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    for (const at of [0.25, 0.5, 0.75]) {
-      const i = Math.floor(track.n * at);
-      const p = track.pts[i];
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(Math.atan2(track.ty[i], track.tx[i]));
+  // 起跑格
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 2.5;
+  for (let slot = 0; slot < 8; slot++) {
+    const back = 34 + Math.floor(slot / 2) * 44;
+    const idx = (track.n - Math.round(back / track.ds) + track.n) % track.n;
+    const side = slot % 2 === 0 ? -1 : 1;
+    const off = side * track.width * 0.22;
+    const p = track.pts[idx];
+    ctx.save();
+    ctx.translate(p.x + track.nx[idx] * off, p.y + track.ny[idx] * off);
+    ctx.rotate(Math.atan2(track.ty[idx], track.tx[idx]));
+    ctx.beginPath();
+    ctx.moveTo(10, -12); ctx.lineTo(22, -12); ctx.lineTo(22, 12); ctx.lineTo(10, 12);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 行進方向箭頭
+  for (const at of [0.22, 0.47, 0.72]) {
+    const i = Math.floor(track.n * at);
+    const p = track.pts[i];
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(Math.atan2(track.ty[i], track.tx[i]));
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    for (const dx of [-14, 2]) {
       ctx.beginPath();
-      ctx.moveTo(14, 0); ctx.lineTo(-6, -11); ctx.lineTo(-2, 0); ctx.lineTo(-6, 11);
+      ctx.moveTo(dx + 12, 0); ctx.lineTo(dx - 2, -12); ctx.lineTo(dx + 2, 0); ctx.lineTo(dx - 2, 12);
       ctx.closePath(); ctx.fill();
-      ctx.restore();
     }
+    ctx.restore();
+  }
 
-    // 樹
-    for (const t of treesFor(track)) {
-      ctx.fillStyle = 'rgba(0,0,0,0.22)';
-      ctx.beginPath(); ctx.arc(t.x + 5, t.y + 6, t.r, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#2e7d32';
-      ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#43a047';
-      ctx.beginPath(); ctx.arc(t.x - t.r * 0.25, t.y - t.r * 0.25, t.r * 0.6, 0, Math.PI * 2); ctx.fill();
+  // 輪胎堆
+  for (const t of deco.tires) {
+    for (const [ox, oy] of [[-9, 0], [9, 0], [0, -11]]) {
+      const x = t.x + ox * Math.cos(t.a) - oy * Math.sin(t.a), y = t.y + ox * Math.sin(t.a) + oy * Math.cos(t.a);
+      ctx.fillStyle = 'rgba(0,0,0,0.2)';
+      ctx.beginPath(); ctx.arc(x + 3, y + 4, 9, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2b2f3a';
+      ctx.strokeStyle = INK; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#8a93a8';
+      ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2); ctx.fill();
     }
   }
+
+  // 卡通樹
+  for (const t of deco.trees) {
+    ctx.fillStyle = 'rgba(0,40,0,0.22)';
+    ctx.beginPath(); ctx.ellipse(t.x + 6, t.y + 8, t.r, t.r * 0.8, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2fae4e';
+    ctx.strokeStyle = INK; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#55cf6a';
+    ctx.beginPath(); ctx.arc(t.x - t.r * 0.25, t.y - t.r * 0.28, t.r * 0.55, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.beginPath(); ctx.arc(t.x - t.r * 0.42, t.y - t.r * 0.45, t.r * 0.16, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// 起終點拱門（畫在車子上面，車子會從底下穿過）
+export function drawGantry(ctx, track) {
+  const p0 = track.pts[0];
+  const ang = Math.atan2(track.ty[0], track.tx[0]);
+  const span = track.half + track.runoff * 0.6;
+  ctx.save();
+  ctx.translate(p0.x + track.tx[0] * 16, p0.y + track.ty[0] * 16);
+  ctx.rotate(ang);
+  ctx.globalAlpha = 0.95;
+  // 影子
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.fillRect(-6 + 8, -span + 10, 14, span * 2);
+  // 橫桿
+  ctx.fillStyle = '#2f8cff';
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.rect(-7, -span, 14, span * 2);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillRect(-5, -span + 2, 4, span * 2 - 4);
+  // 柱子
+  for (const y of [-span, span]) {
+    ctx.fillStyle = '#ffd23f';
+    ctx.beginPath(); ctx.arc(0, y, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+  // 字
+  ctx.rotate(Math.PI / 2);
+  ctx.fillStyle = '#fff';
+  ctx.font = '900 10px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('START · FINISH', 0, 0.5);
+  ctx.restore();
 }
 
 // 賽道縮圖（大廳選賽道用）
 export function drawTrackThumb(canvas, track) {
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w || !h) return false;
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(h * dpr);
   const ctx = canvas.getContext('2d');
   const s = Math.min(w / WORLD.w, h / WORLD.h) * dpr;
   ctx.setTransform(s, 0, 0, s, (canvas.width - WORLD.w * s) / 2, (canvas.height - WORLD.h * s) / 2);
   drawTrackScene(ctx, track, { detail: false });
+  return true;
 }
