@@ -36,22 +36,23 @@
 
     <div class="panel slots-panel">
       <div class="panel-title"><span>等候室 <b id="p-count">0/8</b></span></div>
-      <div class="slots-head">
-        <div class="stepper"><span>電腦對手</span>
-          <button id="bot-minus" aria-label="減少電腦對手">−</button><b id="bot-count">0</b><button id="bot-plus" aria-label="增加電腦對手">＋</button>
-        </div>
-      </div>
+      <div class="slots-head"><span id="slots-sum" class="slots-sum"></span></div>
       <div id="player-list" class="slots"></div>
     </div>
 
     <div class="panel track-panel">
-      <div class="panel-title green"><span>選擇賽道</span></div>
-      <div class="track-head">
-        <div class="stepper"><span>圈數</span>
+      <div class="panel-title green"><span>比賽設定</span></div>
+      <div id="track-list" class="track-list"></div>
+      <div class="setting-row">
+        <span class="setting-label">圈數</span>
+        <div class="stepper">
           <button id="lap-minus" aria-label="減少圈數">−</button><b id="lap-count">3</b><button id="lap-plus" aria-label="增加圈數">＋</button>
         </div>
       </div>
-      <div id="track-list" class="track-list"></div>
+      <div class="setting-row">
+        <span class="setting-label">電腦玩家</span>
+        <div id="bot-chips" class="chips" role="radiogroup" aria-label="電腦玩家數量"></div>
+      </div>
     </div>
 
     <div class="start-panel">

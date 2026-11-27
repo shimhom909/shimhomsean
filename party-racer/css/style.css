@@ -214,9 +214,30 @@ input { font: inherit; }
   font-size: 24px; font-weight: 900; animation: bob 1.6s ease-in-out infinite;
 }
 .slot-wait { font-size: 12px; font-weight: 900; }
+.slot.empty { cursor: pointer; transition: background .15s, transform .1s; }
+.slot.empty:hover { background: rgba(255, 255, 255, .7); }
+.slot.empty:active { transform: scale(.97); }
+.slot-addbot {
+  font-size: 11px; font-weight: 900; color: #fff; background: var(--blue); border: 2px solid var(--ink); border-radius: 8px; padding: 1px 8px;
+}
+.slot-badge.bot { cursor: pointer; }
+.slot-badge.bot:hover { background: var(--red); }
+.slots-sum { font-size: 13px; font-weight: 900; color: var(--ink-soft); }
+
+.setting-row { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; margin-top: 14px; }
+.setting-label {
+  font-weight: 900; font-size: 14px; color: #fff; background: var(--ink); padding: 3px 10px; border-radius: 9px; min-width: 5.2em; text-align: center;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  min-width: 38px; height: 38px; padding: 0 6px; border: 3px solid var(--ink); border-radius: 12px; font-size: 18px; font-weight: 900; font-style: italic;
+  background: var(--panel2); color: var(--ink); box-shadow: 0 3px 0 var(--ink); transition: transform .08s;
+}
+.chip:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.chip.selected { background: linear-gradient(#ffe680, #ffb21f); transform: translateY(-2px); box-shadow: 0 5px 0 var(--ink); }
+.chip:disabled { opacity: .3; box-shadow: none; cursor: default; }
 
 .track-panel { grid-area: track; }
-.track-head { display: flex; justify-content: flex-end; margin: -6px 0 10px; }
 .track-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .track-card {
   position: relative; background: var(--panel2); border: 3px solid var(--ink); border-radius: 14px; padding: 5px; text-align: left;
@@ -251,6 +272,10 @@ input { font: inherit; }
   .slot-name { font-size: 12px; }
   .slot-car { display: none; }
   .slot-badge { font-size: 10px; padding: 1px 5px; }
+  .slot-addbot { font-size: 10px; padding: 0 5px; }
+  .slot.player-card .slot-no { display: none; }   /* 窄螢幕讓位給 READY／電腦 ✕ 標章 */
+  .slot-badge { left: 4px; right: 4px; text-align: center; }
+  .chip { min-width: 34px; height: 34px; font-size: 16px; }
   .track-list { gap: 6px; }
   .track-desc { display: none; }
   .logo { font-size: 26px; }

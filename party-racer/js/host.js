@@ -13,14 +13,20 @@ const STEP = 1 / 60;
 const HEARTBEAT_TIMEOUT = 7000;   // 這麼久沒收到手機訊息就當斷線
 const LOBBY_KEEP = 60000;         // 大廳裡斷線的玩家保留多久（讓他重連回來）
 
+// 主機上次的設定（電腦玩家數、圈數、賽道）存在這台裝置上，下次開房直接沿用
+const saved = (() => {
+  try { return JSON.parse(localStorage.getItem('pr-host') || '{}'); } catch (e) { return {}; }
+})();
+
 const S = {
   code: null,
   phase: 'boot',                  // boot | lobby | race | results
   players: new Map(),             // 真人玩家 id → player
   bots: [],
-  botCount: 0,
-  trackId: TRACKS[0].id,
-  laps: 3,
+  botWanted: Number.isInteger(saved.bots) ? Math.max(0, Math.min(MAX_PLAYERS, saved.bots)) : 0,  // 主機想要幾台電腦
+  botCount: 0,                    // 實際幾台（真人太多時會自動讓位）
+  trackId: TRACKS.some((t) => t.id === saved.track) ? saved.track : TRACKS[0].id,
+  laps: Number.isInteger(saved.laps) ? Math.max(1, Math.min(9, saved.laps)) : 3,
   race: null,
   track: null,
   racers: [],
@@ -186,9 +192,21 @@ function sendTo(id, msg) {
 
 // ── 電腦對手 ─────────────────────────────────────────
 
+function saveSettings() {
+  try { localStorage.setItem('pr-host', JSON.stringify({ bots: S.botWanted, laps: S.laps, track: S.trackId })); } catch (e) { /* ignore */ }
+}
+
+// 設定想要的電腦玩家數（會被剩餘空位限制）
+function setBots(n) {
+  S.botWanted = Math.max(0, Math.min(MAX_PLAYERS - S.players.size, n));
+  saveSettings();
+  refreshLobby();
+}
+
 function rebuildBots() {
+  // 真人優先：空位不夠時電腦先讓位，有人離開再補回來
   const max = MAX_PLAYERS - S.players.size;
-  S.botCount = Math.max(0, Math.min(S.botCount, max));
+  S.botCount = Math.max(0, Math.min(S.botWanted, max));
   const used = new Set([...S.players.values()].map((p) => p.color));
   S.bots = [];
   for (let k = 0; k < S.botCount; k++) {
@@ -227,17 +245,33 @@ function setupLobby() {
     b.className = 'track-card';
     b.dataset.id = t.id;
     b.innerHTML = `<canvas></canvas><div class="track-name">${esc(t.name)}</div><div class="track-desc">${esc(t.desc)}</div>`;
-    b.onclick = () => { S.trackId = t.id; refreshLobby(); };
+    b.onclick = () => { S.trackId = t.id; saveSettings(); refreshLobby(); };
     list.appendChild(b);
   }
   requestAnimationFrame(() => {
     for (const b of list.children) drawTrackThumb(b.querySelector('canvas'), getTrack(b.dataset.id));
   });
 
-  $('lap-minus').onclick = () => { S.laps = Math.max(1, S.laps - 1); refreshLobby(); };
-  $('lap-plus').onclick = () => { S.laps = Math.min(9, S.laps + 1); refreshLobby(); };
-  $('bot-minus').onclick = () => { S.botCount = Math.max(0, S.botCount - 1); refreshLobby(); };
-  $('bot-plus').onclick = () => { S.botCount += 1; refreshLobby(); };
+  $('lap-minus').onclick = () => { S.laps = Math.max(1, S.laps - 1); saveSettings(); refreshLobby(); };
+  $('lap-plus').onclick = () => { S.laps = Math.min(9, S.laps + 1); saveSettings(); refreshLobby(); };
+
+  const chips = $('bot-chips');
+  chips.innerHTML = '';
+  for (let n = 0; n < MAX_PLAYERS; n++) {
+    const c = document.createElement('button');
+    c.className = 'chip';
+    c.dataset.bots = n;
+    c.textContent = n;
+    c.setAttribute('role', 'radio');
+    c.setAttribute('aria-label', `${n} 台電腦玩家`);
+    c.onclick = () => setBots(n);
+    chips.appendChild(c);
+  }
+  // 點空位＝加一台電腦；點電腦的 ✕＝少一台
+  $('player-list').addEventListener('click', (e) => {
+    if (e.target.closest('.slot.empty')) setBots(S.botCount + 1);
+    else if (e.target.closest('.slot-badge.bot')) setBots(S.botCount - 1);
+  });
   $('start-btn').onclick = startRace;
   $('again-btn').onclick = startRace;
   $('lobby-btn').onclick = backToLobby;
@@ -294,9 +328,15 @@ function refreshLobby() {
   if (S.phase === 'boot') return;
 
   $('p-count').textContent = `${all.length}/${MAX_PLAYERS}`;
-  $('bot-count').textContent = S.botCount;
   $('lap-count').textContent = S.laps;
-  $('bot-plus').disabled = all.length >= MAX_PLAYERS;
+  const free = MAX_PLAYERS - S.players.size;
+  for (const c of $('bot-chips').children) {
+    const n = +c.dataset.bots;
+    c.disabled = n > free;
+    c.classList.toggle('selected', n === S.botCount);
+    c.setAttribute('aria-checked', n === S.botCount ? 'true' : 'false');
+  }
+  $('slots-sum').textContent = `真人 ${S.players.size}・電腦 ${S.botCount}` + (all.length < MAX_PLAYERS ? '　點空位可加電腦玩家' : '');
 
   // 等候室：固定 8 個位置，有人的顯示車子，沒人的顯示「等待加入」
   const list = $('player-list');
@@ -307,7 +347,8 @@ function refreshLobby() {
     if (!p) {
       const el = document.createElement('div');
       el.className = 'slot empty';
-      el.innerHTML = `<div class="slot-no">P${i + 1}</div><div class="slot-plus">+</div><div class="slot-wait">等待加入</div>`;
+      el.title = '點一下加入電腦玩家';
+      el.innerHTML = `<div class="slot-no">P${i + 1}</div><div class="slot-plus">+</div><div class="slot-wait">等待加入</div><div class="slot-addbot">點我加電腦</div>`;
       nodes.push(el);
       continue;
     }
@@ -323,7 +364,7 @@ function refreshLobby() {
     el.querySelector('.slot-name').textContent = p.name;
     el.querySelector('.slot-car').textContent = `${car.name} · ${car.type}`;
     const st = el.querySelector('.slot-badge');
-    if (p.bot) { st.textContent = '電腦'; st.className = 'slot-badge bot'; }
+    if (p.bot) { st.textContent = '電腦 ✕'; st.className = 'slot-badge bot'; st.title = '移除這台電腦玩家'; }
     else if (!p.connected) { st.textContent = '斷線'; st.className = 'slot-badge off'; }
     else if (p.ready) { st.textContent = 'READY'; st.className = 'slot-badge ok'; }
     else { st.textContent = '設定中'; st.className = 'slot-badge wait'; }
