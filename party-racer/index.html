@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4fb1ff">
+<title>派對賽車</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main class="home">
+  <div class="home-hero">
+    <div class="logo"><i class="flag"></i><span>派對賽車</span></div>
+    <p class="tagline">一台螢幕當賽道，大家的手機當搖桿</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title orange"><span>我要當主機</span></div>
+    <p>這台裝置會顯示賽道和 QR code。建議用平板、電腦，或把手機橫放／投影到電視上。</p>
+    <button id="host-btn" class="btn go big">建立房間</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title"><span>加入朋友的房間</span></div>
+    <p>直接用相機掃主機畫面上的 QR code 最快；或在這裡輸入 4 個字的房間代碼。</p>
+    <div class="join-row">
+      <input id="code" class="code-input" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD">
+      <button id="join-btn" class="btn primary">加入</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title green"><span>怎麼玩</span></div>
+    <ol>
+      <li>主機按「建立房間」，畫面會出現 QR code</li>
+      <li>朋友用手機相機掃描，在車庫選車款、烤漆顏色、輸入名字</li>
+      <li>主機選賽道與圈數，按「開始比賽！」</li>
+      <li>手機變成搖桿：左邊 ◀ ▶ 轉向，右邊油門、煞車（停下後按住可倒車）、氮氣加速</li>
+    </ol>
+  </div>
+</main>
+<script type="module">
+  import { normalizeCode, passthroughQuery } from './js/net.js';
+  const extra = passthroughQuery();
+  const q = extra ? '&' + extra : '';
+  document.getElementById('host-btn').onclick = () => { location.href = 'host.html' + (extra ? '?' + extra : ''); };
+  const input = document.getElementById('code');
+  input.addEventListener('input', () => { input.value = normalizeCode(input.value); });
+  const go = () => {
+    const c = normalizeCode(input.value);
+    if (c.length === 4) location.href = `play.html?room=${c}${q}`;
+    else input.focus();
+  };
+  document.getElementById('join-btn').onclick = go;
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+</script>
+</body>
+</html>
