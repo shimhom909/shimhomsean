@@ -1,6 +1,6 @@
 // 手機搖桿：加入房間、設定名稱/顏色/車款、比賽時當搖桿。
 
-import { CARS, COLORS, FUN_NAMES, STAT_LABELS, carById } from './config.js';
+import { CARS, COLORS, FUN_NAMES, STAT_LABELS, carById, trackById } from './config.js';
 import { joinRoom, normalizeCode, passthroughQuery } from './net.js';
 import { drawShowcase, drawCarPreview } from './render.js';
 
@@ -388,6 +388,10 @@ function renderWait() {
   $('wait-car-name').textContent = `${car.name} · ${car.type}`;
   document.documentElement.style.setProperty('--me', profile.color);
   $('w-room').textContent = room;
+  if (lobby && lobby.track) {
+    $('wait-track').innerHTML = `下一場　<b>${escapeHtml(trackById(lobby.track).name)}</b>・${lobby.laps} 圈`;
+    $('wait-track').classList.remove('hidden');
+  }
   const racing = lobby && lobby.phase !== 'lobby' && !lobby.racers.includes(cid);
   $('ready-stamp').classList.toggle('hidden', !!racing);
   $('wait-msg').textContent = racing ? '比賽進行中，下一場就能加入！' : '等待主機開始比賽…';

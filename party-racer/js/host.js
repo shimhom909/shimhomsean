@@ -5,7 +5,8 @@ import { buildTrack } from './track.js';
 import { Race } from './race.js';
 import { speedOf } from './physics.js';
 import { createHost, passthroughQuery } from './net.js';
-import { drawCar, drawShowcase, drawTrackScene, drawTrackThumb, drawGantry, CAR_SIZE, INK } from './render.js';
+import { drawCar, drawShowcase, drawGantry, CAR_SIZE, INK } from './render.js';
+import { drawTrackScene, drawTrackThumb, themeOf } from './scenery.js';
 import { sfx, unlockAudio, setMuted, isMuted } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
@@ -244,7 +245,8 @@ function setupLobby() {
     const b = document.createElement('button');
     b.className = 'track-card';
     b.dataset.id = t.id;
-    b.innerHTML = `<canvas></canvas><div class="track-name">${esc(t.name)}</div><div class="track-desc">${esc(t.desc)}</div>`;
+    b.title = t.desc;
+    b.innerHTML = `<canvas></canvas><div class="track-name">${esc(t.name)}</div>`;
     b.onclick = () => { S.trackId = t.id; saveSettings(); refreshLobby(); };
     list.appendChild(b);
   }
@@ -380,6 +382,8 @@ function refreshLobby() {
   list.replaceChildren(...nodes);
 
   for (const b of $('track-list').children) b.classList.toggle('selected', b.dataset.id === S.trackId);
+  const tdef = trackById(S.trackId);
+  $('track-info').innerHTML = `<span class="theme-tag">${themeOf(getTrack(S.trackId)).label}</span><b>${esc(tdef.name)}</b>　${esc(tdef.desc)}`;
 
   const hs = humans().filter((p) => p.connected);
   const canStart = hs.length + S.bots.length > 0;
@@ -433,6 +437,7 @@ function startRace() {
   $('results').classList.add('hidden');
   $('end-btn').classList.remove('hidden');
   $('hud-count').textContent = '';
+  $('h-race').style.background = themeOf(S.track).letterbox;
   show('h-race');
   resize();
   refreshLobby();
@@ -582,10 +587,10 @@ function resize() {
 
   const b = bg.getContext('2d');
   b.setTransform(1, 0, 0, 1, 0, 0);
-  b.fillStyle = '#3f9b4a';
+  b.fillStyle = themeOf(S.track).letterbox;
   b.fillRect(0, 0, bg.width, bg.height);
   b.setTransform(...m);
-  drawTrackScene(b, S.track);
+  drawTrackScene(b, S.track, { iconAngle: rot ? -Math.PI / 2 : 0 });
   skid.getContext('2d').clearRect(0, 0, skid.width, skid.height);
 }
 window.addEventListener('resize', () => { if (S.phase === 'race' || S.phase === 'results') resize(); });
