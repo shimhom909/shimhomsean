@@ -4,25 +4,38 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#4fb1ff">
-<title>派對賽車</title>
+<title>派對遊戲</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <main class="home">
   <div class="home-hero">
-    <div class="logo"><i class="flag"></i><span>派對賽車</span></div>
-    <p class="tagline">一台螢幕當賽道，大家的手機當搖桿</p>
+    <div class="logo"><i class="flag"></i><span>派對遊戲</span></div>
+    <p class="tagline">一台螢幕當主畫面，大家的手機當搖桿</p>
   </div>
 
-  <div class="panel">
-    <div class="panel-title orange"><span>我要當主機</span></div>
-    <p>這台裝置會顯示賽道和 QR code。建議用平板、電腦，或把手機橫放／投影到電視上。</p>
-    <button id="host-btn" class="btn go big">建立房間</button>
+  <div class="game-grid">
+    <div class="panel game-card" data-game="racer">
+      <div class="panel-title orange"><span>遊戲 1</span></div>
+      <div class="game-art"><canvas id="art-racer"></canvas></div>
+      <h2 class="game-title">派對賽車</h2>
+      <p class="game-desc">4 款車、5 條賽道（草原、遊樂園、埃及沙漠），最多 8 人同場競速。</p>
+      <p class="game-ctrl">🎮 ◀ ▶ 轉向・油門・煞車・氮氣</p>
+      <button class="btn go big host-btn" data-href="host.html">建立房間</button>
+    </div>
+    <div class="panel game-card" data-game="brawl">
+      <div class="panel-title pink"><span>遊戲 2</span></div>
+      <div class="game-art"><canvas id="art-brawl"></canvas><div id="art-chibis" class="art-chibis"></div></div>
+      <h2 class="game-title">彩彈大亂鬥</h2>
+      <p class="game-desc">俯視射擊混戰！3 種武器、衝刺閃避、道具，限時內擊倒最多人獲勝。</p>
+      <p class="game-ctrl">🎮 雙搖桿：左邊移動・右邊瞄準射擊・衝刺</p>
+      <button class="btn go big host-btn" data-href="brawl.html">建立房間</button>
+    </div>
   </div>
 
   <div class="panel">
     <div class="panel-title"><span>加入朋友的房間</span></div>
-    <p>直接用相機掃主機畫面上的 QR code 最快；或在這裡輸入 4 個字的房間代碼。</p>
+    <p>直接用相機掃主機畫面上的 QR code 最快；或在這裡輸入 4 個字的房間代碼（兩個遊戲通用）。</p>
     <div class="join-row">
       <input id="code" class="code-input" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD">
       <button id="join-btn" class="btn primary">加入</button>
@@ -32,18 +45,27 @@
   <div class="panel">
     <div class="panel-title green"><span>怎麼玩</span></div>
     <ol>
-      <li>主機按「建立房間」，畫面會出現 QR code</li>
-      <li>朋友用手機相機掃描，在車庫選車款、烤漆顏色、輸入名字</li>
-      <li>主機選賽道與圈數，按「開始比賽！」</li>
-      <li>手機變成搖桿：左邊 ◀ ▶ 轉向，右邊油門、煞車（停下後按住可倒車）、氮氣加速</li>
+      <li>主機選一個遊戲，按「建立房間」，畫面會出現 QR code</li>
+      <li>朋友用手機相機掃描，設定自己的動漫角色（髮型、眼睛、服裝、配件…）和名字</li>
+      <li>賽車選車款、大亂鬥選武器，按「準備好了！」</li>
+      <li>主機按開始，手機就變成搖桿</li>
     </ol>
   </div>
 </main>
 <script type="module">
   import { normalizeCode, passthroughQuery } from './js/net.js';
+  import { buildTrack } from './js/track.js';
+  import { trackById } from './js/config.js';
+  import { drawTrackThumb } from './js/scenery.js';
+  import { drawArenaThumb } from './js/brawl-render.js';
+  import { arenaById } from './js/brawl.js';
+  import { chibiSVG, randomAvatar } from './js/avatar.js';
+
   const extra = passthroughQuery();
   const q = extra ? '&' + extra : '';
-  document.getElementById('host-btn').onclick = () => { location.href = 'host.html' + (extra ? '?' + extra : ''); };
+  for (const b of document.querySelectorAll('.host-btn')) {
+    b.onclick = () => { location.href = b.dataset.href + (extra ? '?' + extra : ''); };
+  }
   const input = document.getElementById('code');
   input.addEventListener('input', () => { input.value = normalizeCode(input.value); });
   const go = () => {
@@ -53,6 +75,14 @@
   };
   document.getElementById('join-btn').onclick = go;
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+
+  // 遊戲預覽圖
+  requestAnimationFrame(() => {
+    drawTrackThumb(document.getElementById('art-racer'), buildTrack(trackById('park')));
+    drawArenaThumb(document.getElementById('art-brawl'), arenaById('shrine'));
+    const colors = ['#ff70a6', '#3a86ff', '#ffd60a'];
+    document.getElementById('art-chibis').innerHTML = colors.map((c) => `<span>${chibiSVG(randomAvatar(), c)}</span>`).join('');
+  });
 </script>
 </body>
 </html>

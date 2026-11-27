@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4fb1ff">
+<title>彩彈大亂鬥 · 主機</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="host brawl">
+
+<section id="h-boot" class="screen center">
+  <div class="logo"><i class="flag paint"></i><span>彩彈大亂鬥</span></div>
+  <div class="spinner"></div>
+  <p id="h-boot-msg" class="hint">建立房間中…</p>
+  <button id="h-retry" class="btn primary hidden" onclick="location.reload()">重新整理</button>
+</section>
+
+<section id="h-lobby" class="screen hidden">
+  <header class="topbar">
+    <div class="logo"><i class="flag paint"></i><span>彩彈大亂鬥</span></div>
+    <div class="top-actions">
+      <a class="icon-btn" href="index.html" title="換遊戲">🏠</a>
+      <button id="mute-btn" class="icon-btn" title="音效">🔊</button>
+      <button id="fs-btn" class="icon-btn" title="全螢幕">⛶</button>
+    </div>
+  </header>
+  <div class="lobby">
+    <div class="panel join-panel">
+      <div class="panel-title orange"><span>掃描加入</span></div>
+      <div class="qr-wrap"><canvas id="qr"></canvas></div>
+      <div class="room-code-label">房間代碼</div>
+      <div id="room-code" class="room-code">----</div>
+      <p class="join-hint">用手機相機掃 QR code<br>或開啟 <b id="join-url-short"></b> 輸入代碼</p>
+      <p id="local-warn" class="warn hidden"></p>
+    </div>
+
+    <div class="panel slots-panel">
+      <div class="panel-title pink"><span>等候室 <b id="p-count">0/8</b></span></div>
+      <div class="slots-head"><span id="slots-sum" class="slots-sum"></span></div>
+      <div id="player-list" class="slots"></div>
+    </div>
+
+    <div class="panel track-panel">
+      <div class="panel-title green"><span>比賽設定</span></div>
+      <div id="track-list" class="track-list arena-list"></div>
+      <div id="track-info" class="track-info"></div>
+      <div class="setting-row">
+        <span class="setting-label">比賽時間</span>
+        <div id="time-chips" class="chips" role="radiogroup" aria-label="比賽時間"></div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">電腦玩家</span>
+        <div id="bot-chips" class="chips" role="radiogroup" aria-label="電腦玩家數量"></div>
+      </div>
+    </div>
+
+    <div class="start-panel">
+      <button id="start-btn" class="btn go mega" disabled>開打！</button>
+      <p id="start-hint" class="hint"></p>
+    </div>
+  </div>
+</section>
+
+<section id="h-race" class="screen hidden">
+  <canvas id="game"></canvas>
+  <div class="hud-clock"><div id="hud-timer" class="clock">2:00</div></div>
+  <div id="hud-feed" class="hud-feed"></div>
+  <div id="hud-standings" class="hud-rank brawl-rank"></div>
+  <div id="hud-count" class="hud-count"></div>
+  <div id="hud-banner" class="hud-banner"><span></span></div>
+  <div id="hud-toasts" class="hud-toasts"></div>
+  <div class="hud-buttons">
+    <span class="hud-room">房間 <b id="hud-room"></b></span>
+    <button id="end-btn" class="btn small">結束比賽</button>
+  </div>
+  <div id="results" class="results hidden">
+    <canvas id="confetti"></canvas>
+    <div class="results-inner">
+      <div class="results-title">比賽結果</div>
+      <div id="podium" class="podium portrait-podium"></div>
+      <div id="results-table" class="results-table"></div>
+      <div class="results-actions">
+        <button id="again-btn" class="btn go big">再來一場</button>
+        <button id="lobby-btn" class="btn blue big">回等候室</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="net-status" class="net-status hidden"></div>
+
+<script src="vendor/peerjs.min.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script type="module" src="js/brawl-host.js"></script>
+</body>
+</html>

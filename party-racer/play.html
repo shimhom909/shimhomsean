@@ -6,13 +6,13 @@
 <meta name="theme-color" content="#4fb1ff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>派對賽車 · 搖桿</title>
+<title>派對遊戲 · 搖桿</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="pad-page">
 
 <section id="c-join" class="screen center hidden">
-  <div class="logo"><i class="flag"></i><span>派對賽車</span></div>
+  <div class="logo"><i class="flag"></i><span>派對遊戲</span></div>
   <div class="panel join-card">
     <div class="panel-title orange"><span>加入房間</span></div>
     <p class="muted" style="margin:0">輸入主機畫面上的房間代碼</p>
@@ -30,30 +30,60 @@
 <section id="c-setup" class="screen hidden">
   <div class="setup">
     <div class="setup-head">
-      <div class="logo small"><i class="flag"></i><span>派對賽車</span></div>
+      <div class="logo small"><i id="game-flag" class="flag"></i><span id="game-name">派對遊戲</span></div>
       <span class="room-tag">房間 <b id="s-room"></b></span>
     </div>
-    <div class="panel garage">
-      <div class="panel-title"><span>車庫</span></div>
-      <div class="showcase">
-        <button id="car-prev" class="arrow-btn" aria-label="上一台">◀</button>
-        <canvas id="showcase"></canvas>
-        <button id="car-next" class="arrow-btn" aria-label="下一台">▶</button>
-      </div>
-      <div class="car-title"><span id="car-name" class="car-name"></span><span id="car-type" class="car-type"></span></div>
-      <div id="car-desc" class="car-desc"></div>
-      <div id="car-stats" class="stats"></div>
-      <div id="car-list" class="car-thumbs"></div>
+    <div class="tabs" role="tablist">
+      <button class="tab selected" data-tab="chara" role="tab">角色</button>
+      <button class="tab" data-tab="gear" id="tab-gear" role="tab">車庫</button>
     </div>
-    <div class="panel">
-      <div class="panel-title pink"><span>車手</span></div>
-      <label class="field">
-        <span class="field-label">名稱</span>
-        <input id="name-input" class="name-input" maxlength="10" placeholder="輸入你的名字" autocomplete="off" enterkeyhint="done">
-      </label>
-      <div class="field">
-        <span class="field-label">烤漆顏色</span>
-        <div id="color-list" class="color-list"></div>
+
+    <div id="pane-chara" class="pane">
+      <div class="chara-wrap">
+        <div class="panel chara-stage">
+          <div class="panel-title pink"><span>角色</span></div>
+          <div id="chara-art" class="chara-art"></div>
+          <button id="chara-random" class="btn small dice">🎲 隨機</button>
+        </div>
+        <div class="panel chara-opts">
+          <div class="panel-title"><span>造型</span></div>
+          <label class="field">
+            <span class="field-label">名稱</span>
+            <input id="name-input" class="name-input" maxlength="10" placeholder="輸入你的名字" autocomplete="off" enterkeyhint="done">
+          </label>
+          <div class="field">
+            <span class="field-label">代表色（衣服、車身、彩彈）</span>
+            <div id="color-list" class="color-list"></div>
+          </div>
+          <div id="avatar-fields"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pane-gear" class="pane hidden">
+      <div id="garage" class="panel garage">
+        <div class="panel-title"><span>車庫</span></div>
+        <div class="showcase">
+          <button id="car-prev" class="arrow-btn" aria-label="上一台">◀</button>
+          <canvas id="showcase"></canvas>
+          <button id="car-next" class="arrow-btn" aria-label="下一台">▶</button>
+        </div>
+        <div class="car-title"><span id="car-name" class="car-name"></span><span id="car-type" class="car-type"></span></div>
+        <div id="car-desc" class="car-desc"></div>
+        <div id="car-stats" class="stats"></div>
+        <div id="car-list" class="car-thumbs"></div>
+      </div>
+      <div id="armory" class="panel garage hidden">
+        <div class="panel-title orange"><span>武器庫</span></div>
+        <div class="showcase">
+          <button id="wpn-prev" class="arrow-btn" aria-label="上一把">◀</button>
+          <canvas id="wpn-showcase"></canvas>
+          <button id="wpn-next" class="arrow-btn" aria-label="下一把">▶</button>
+        </div>
+        <div class="car-title"><span id="wpn-name" class="car-name"></span><span id="wpn-type" class="car-type"></span></div>
+        <div id="wpn-desc" class="car-desc"></div>
+        <div id="wpn-stats" class="stats"></div>
+        <div id="wpn-list" class="car-thumbs wpn-thumbs"></div>
       </div>
     </div>
   </div>
@@ -64,7 +94,7 @@
   <div class="panel wait-panel">
     <div class="panel-title"><span>房間 <b id="w-room"></b></span></div>
     <div id="ready-stamp" class="ready-stamp">READY!</div>
-    <canvas id="wait-car" class="wait-car"></canvas>
+    <div id="wait-art" class="wait-art"></div>
     <h2 id="wait-name" class="wait-name"></h2>
     <p id="wait-car-name" class="wait-carname"></p>
   </div>
@@ -106,9 +136,35 @@
   </div>
 </section>
 
+<section id="c-brawl" class="screen hidden">
+  <div class="bpad">
+    <div id="stick-move" class="stick-zone">
+      <div class="stick-base"><div class="stick-knob"></div></div>
+      <span class="stick-label">移動</span>
+    </div>
+    <div class="bpad-info">
+      <div class="b-top">
+        <div id="b-face" class="b-face"></div>
+        <div class="b-who"><div id="b-name" class="pad-name"></div><div id="b-rank" class="pad-pos small">–</div></div>
+      </div>
+      <div class="hp-bar"><i id="b-hp"></i><i id="b-sh" class="sh"></i><span id="b-hp-num">100</span></div>
+      <div class="b-stats"><span>擊倒 <b id="b-ko">0</b></span><span>被擊倒 <b id="b-de">0</b></span><span class="b-time" id="b-time">-:--</span></div>
+      <div id="b-buffs" class="b-buffs"></div>
+      <div id="b-msg" class="pad-msg"></div>
+      <button id="btn-dash" class="pbtn dash"><i class="charge"></i><span>衝刺</span></button>
+    </div>
+    <div id="stick-aim" class="stick-zone aim">
+      <div class="stick-base"><div class="stick-knob"></div></div>
+      <span class="stick-label">瞄準・射擊</span>
+    </div>
+  </div>
+  <div id="b-dead" class="b-dead hidden"><div class="b-dead-title">被擊倒了！</div><div id="b-dead-by" class="b-dead-by"></div><div id="b-dead-num" class="b-dead-num">3</div></div>
+</section>
+
 <section id="c-result" class="screen center hidden">
   <div class="panel result-panel">
     <div class="panel-title orange"><span>比賽結果</span></div>
+    <div id="r-art" class="r-art"></div>
     <div id="r-place" class="r-place"></div>
     <div id="r-sub" class="r-sub"></div>
     <div id="r-list" class="r-list"></div>

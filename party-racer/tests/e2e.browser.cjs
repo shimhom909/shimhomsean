@@ -54,10 +54,12 @@ function check(cond, msg) {
     const [a, b] = phones;
     await a.fill('#name-input', '阿明');
     await a.click('.color-dot[data-hex="#3a86ff"]');
+    await a.click('.tab[data-tab="gear"]');
     await a.click('.car-card[data-id="bolt"]');
     await b.waitForTimeout(500);
     check(await b.$eval('.color-dot[data-hex="#3a86ff"]', (el) => el.disabled), '別人選走的顏色不能再選');
     await b.click('.color-dot[data-hex="#ff70a6"]');
+    await b.click('.tab[data-tab="gear"]');
     await b.click('.car-card[data-id="pixie"]');
     await a.click('#ready-btn');
     await b.click('#ready-btn');
