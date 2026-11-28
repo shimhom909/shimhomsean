@@ -54,20 +54,46 @@ function check(cond, msg) {
     const [a, b] = phones;
     await a.fill('#name-input', '阿明');
     await a.click('.color-dot[data-hex="#3a86ff"]');
+    await a.click('.tab[data-tab="gear"]');
     await a.click('.car-card[data-id="bolt"]');
     await b.waitForTimeout(500);
     check(await b.$eval('.color-dot[data-hex="#3a86ff"]', (el) => el.disabled), '別人選走的顏色不能再選');
     await b.click('.color-dot[data-hex="#ff70a6"]');
+    await b.click('.tab[data-tab="gear"]');
     await b.click('.car-card[data-id="pixie"]');
     await a.click('#ready-btn');
     await b.click('#ready-btn');
-    await host.click('#bot-plus');
-    await host.waitForTimeout(500);
+    await host.waitForTimeout(300);
 
     const players = await host.evaluate(() => [...window.__host.players.values()].map((p) => [p.name, p.color, p.car, p.ready]));
     check(players.some(([n, c, car, r]) => n === '阿明' && c === '#3a86ff' && car === 'bolt' && r), '主機收到阿明的名稱、顏色、車款');
     check(players.some(([, c, car, r]) => c === '#ff70a6' && car === 'pixie' && r), '主機收到第二位玩家的設定');
-    check((await host.$$('.player-card')).length === 3, '大廳顯示 2 位玩家＋1 台電腦');
+
+    // 電腦玩家數量設定
+    const cards = () => host.$$eval('.slot.player-card', (els) => els.length);
+    const botsShown = () => host.$$eval('.slot-badge.bot', (els) => els.length);
+    await host.click('#bot-chips .chip[data-bots="3"]');
+    check((await botsShown()) === 3 && (await cards()) === 5, '選「3」＝等候室出現 3 台電腦');
+    check(await host.$eval('#bot-chips .chip[data-bots="7"]', (el) => el.disabled), '已有 2 位真人時，最多只能選 6 台電腦');
+    await host.click('.slot.empty');
+    check((await botsShown()) === 4, '點空位會加入一台電腦');
+    await host.click('.slot-badge.bot');
+    check((await botsShown()) === 3, '點電腦的 ✕ 會移除一台');
+    await host.click('#bot-chips .chip[data-bots="6"]');
+    check((await cards()) === 8, '選「6」＝8 個位置全滿');
+    const extra = await ctx.newPage();
+    watch(extra, 'phone-extra');
+    await extra.goto(url);
+    await extra.waitForSelector('#c-setup:not(.hidden)', { timeout: 5000 });
+    await host.waitForTimeout(300);
+    check((await botsShown()) === 5 && (await cards()) === 8, '滿員時有人加入，電腦自動讓出一個位置');
+    const extraId = await extra.evaluate(() => window.__pad.state.cid);
+    await extra.close();
+    // 主機要等心跳逾時才會把關掉的手機移出等候室，測試裡直接移除
+    await host.evaluate((id) => { window.__host.players.delete(id); }, extraId);
+    await host.click('#bot-chips .chip[data-bots="1"]');
+    check((await botsShown()) === 1 && (await cards()) === 3, '改回「1」＝2 位玩家＋1 台電腦');
+    check(await host.evaluate(() => JSON.parse(localStorage.getItem('pr-host')).bots === 1), '主機會記住電腦玩家數量');
 
     await host.click('#start-btn');
     for (const p of phones) await p.waitForSelector('#c-pad:not(.hidden)', { timeout: 3000 });

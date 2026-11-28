@@ -35,4 +35,5 @@ export const sfx = {
   finish: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, { type: 'triangle', vol: 0.15, at: i * 0.12 })),
   bump: () => tone(120, 0.12, { type: 'sawtooth', vol: 0.08, slide: 0.5 }),
   join: () => { tone(520, 0.08, { type: 'triangle' }); tone(780, 0.12, { type: 'triangle', at: 0.08 }); },
+  shot: () => tone(260 + Math.random() * 80, 0.06, { type: 'square', vol: 0.035, slide: 0.55 }),
 };

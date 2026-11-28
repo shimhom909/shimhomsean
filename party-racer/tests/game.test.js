@@ -6,6 +6,7 @@ import { buildTrack, minSeparation, bounds, locate } from '../js/track.js';
 import { Race } from '../js/race.js';
 import { makeCar, stepCar, collideCars, speedOf } from '../js/physics.js';
 import { botInput } from '../js/ai.js';
+import { landmarksOf } from '../js/scenery.js';
 
 function rng(seed) {
   return () => {
@@ -176,3 +177,22 @@ test('真人都到終點就結束，不用等電腦', () => {
   assert.ok(race.cars[0].finished);
   assert.ok(!race.cars[1].finished, '慢的電腦還沒到也結束了');
 });
+
+test('主題賽道：遊樂園有摩天輪和旋轉木馬，沙漠有金字塔', () => {
+  const kinds = (id) => landmarksOf(buildTrack(TRACKS.find((t) => t.id === id))).map((l) => l.kind);
+  const park = kinds('park'), desert = kinds('desert');
+  assert.ok(park.includes('ferris') && park.includes('carousel'), JSON.stringify(park));
+  assert.ok(desert.filter((k) => k === 'pyramid').length >= 2, JSON.stringify(desert));
+});
+
+for (const def of TRACKS) {
+  test(`賽道 ${def.id}：地標不會壓到賽道或護欄，也不會跑出畫面`, () => {
+    const tr = buildTrack(def);
+    for (const l of landmarksOf(tr)) {
+      let min = Infinity;
+      for (const p of tr.pts) min = Math.min(min, Math.hypot(p.x - l.x, p.y - l.y));
+      assert.ok(min >= tr.half + tr.runoff + l.r - 4, `${l.kind} 離賽道太近：${min.toFixed(0)}`);
+      assert.ok(l.x - l.r > -10 && l.y - l.r > -10 && l.x + l.r < WORLD.w + 10 && l.y + l.r < WORLD.h + 10, `${l.kind} 超出畫面`);
+    }
+  });
+}

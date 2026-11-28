@@ -3,9 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#4fb1ff">
+<meta name="theme-color" content="#1b1a1f">
 <title>派對賽車 · 主機</title>
+<link rel="preload" href="fonts/bangers.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/style.css">
+<script type="module" src="js/backdrop.js"></script>
 </head>
 <body class="host">
 
@@ -20,6 +22,7 @@
   <header class="topbar">
     <div class="logo"><i class="flag"></i><span>派對賽車</span></div>
     <div class="top-actions">
+      <a class="icon-btn" href="index.html" title="換遊戲">🏠</a>
       <button id="mute-btn" class="icon-btn" title="音效">🔊</button>
       <button id="fs-btn" class="icon-btn" title="全螢幕">⛶</button>
     </div>
@@ -36,22 +39,24 @@
 
     <div class="panel slots-panel">
       <div class="panel-title"><span>等候室 <b id="p-count">0/8</b></span></div>
-      <div class="slots-head">
-        <div class="stepper"><span>電腦對手</span>
-          <button id="bot-minus" aria-label="減少電腦對手">−</button><b id="bot-count">0</b><button id="bot-plus" aria-label="增加電腦對手">＋</button>
-        </div>
-      </div>
+      <div class="slots-head"><span id="slots-sum" class="slots-sum"></span></div>
       <div id="player-list" class="slots"></div>
     </div>
 
     <div class="panel track-panel">
-      <div class="panel-title green"><span>選擇賽道</span></div>
-      <div class="track-head">
-        <div class="stepper"><span>圈數</span>
+      <div class="panel-title green"><span>比賽設定</span></div>
+      <div id="track-list" class="track-list"></div>
+      <div id="track-info" class="track-info"></div>
+      <div class="setting-row">
+        <span class="setting-label">圈數</span>
+        <div class="stepper">
           <button id="lap-minus" aria-label="減少圈數">−</button><b id="lap-count">3</b><button id="lap-plus" aria-label="增加圈數">＋</button>
         </div>
       </div>
-      <div id="track-list" class="track-list"></div>
+      <div class="setting-row">
+        <span class="setting-label">電腦玩家</span>
+        <div id="bot-chips" class="chips" role="radiogroup" aria-label="電腦玩家數量"></div>
+      </div>
     </div>
 
     <div class="start-panel">
