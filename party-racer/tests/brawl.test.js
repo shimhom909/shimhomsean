@@ -166,17 +166,29 @@ for (const arena of ARENAS) {
   });
 }
 
-test('角色：亂數產生、清理不合法的值、三種圖都畫得出來', () => {
+test('動物角色：亂數產生、清理不合法的值、每種動物和組合都畫得出來', () => {
   const a = randomAvatar(rng(4));
   assert.deepEqual(sanitizeAvatar(a), a);
-  const bad = sanitizeAvatar({ hair: '<script>', hairColor: 'red', acc: 'cat' });
-  assert.equal(bad.hair, AVATAR_OPTIONS.hair[0].id);
-  assert.equal(bad.acc, 'cat');
-  for (const h of AVATAR_OPTIONS.hair) {
+  assert.ok(AVATAR_OPTIONS.species.length >= 3, '至少 3 種動物');
+  const bad = sanitizeAvatar({ species: '<script>', fur: 'red', acc: 'goggles' });
+  assert.equal(bad.species, AVATAR_OPTIONS.species[0].id);
+  assert.equal(bad.fur, AVATAR_OPTIONS.fur[0].hex);
+  assert.equal(bad.acc, 'goggles');
+  // 舊版存的人類角色資料，也要能安全變成動物
+  const old = sanitizeAvatar({ hair: 'twin', hairColor: '#ff9ec7', skin: '#ffe8d8', eyes: 'round', outfit: 'sailor', acc: 'cat' });
+  assert.equal(old.species, AVATAR_OPTIONS.species[0].id);
+  assert.equal(old.eyes, 'round');
+  assert.equal(old.acc, AVATAR_OPTIONS.acc[0].id);
+  const check = (av, what) => {
     for (const fn of [portraitSVG, chibiSVG, faceSVG]) {
-      const svg = fn({ ...a, hair: h.id }, '#3a86ff');
+      const svg = fn(av, '#3a86ff');
       assert.ok(svg.startsWith('<svg') && svg.endsWith('</svg>'));
-      assert.ok(!svg.includes('NaN') && !svg.includes('undefined'), `${h.id} 的圖有壞掉的數值`);
+      assert.ok(!svg.includes('NaN') && !svg.includes('undefined'), `${what} 的圖有壞掉的數值`);
+    }
+  };
+  for (const sp of AVATAR_OPTIONS.species) {
+    for (const key of ['pattern', 'eyes', 'mouth', 'outfit', 'acc']) {
+      for (const o of AVATAR_OPTIONS[key]) check({ ...a, species: sp.id, [key]: o.id }, `${sp.id}/${key}=${o.id}`);
     }
   }
 });

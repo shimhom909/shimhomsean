@@ -43,7 +43,7 @@ function check(cond, msg) {
     const url = await host.getAttribute('#qr', 'data-url');
 
     const phones = [];
-    for (const [name, hair, eyes, weapon, color] of [['小櫻', 'twin', 'round', 'shotgun', '#ff70a6'], ['阿翔', 'spiky', 'sharp', 'sniper', '#3a86ff']]) {
+    for (const [name, species, eyes, weapon, color] of [['小櫻', 'rabbit', 'round', 'shotgun', '#ff70a6'], ['阿翔', 'fox', 'sharp', 'sniper', '#3a86ff']]) {
       const p = await ctx.newPage();
       watch(p, name);
       await p.setViewportSize({ width: 390, height: 844 });
@@ -51,7 +51,7 @@ function check(cond, msg) {
       await p.waitForSelector('#c-setup:not(.hidden)', { timeout: 5000 });
       await p.fill('#name-input', name);
       await p.click(`.color-dot[data-hex="${color}"]`);
-      await p.click(`.opt-row[data-key="hair"] .opt[data-val="${hair}"]`);
+      await p.click(`.opt-row[data-key="species"] .opt[data-val="${species}"]`);
       await p.click(`.opt-row[data-key="eyes"] .opt[data-val="${eyes}"]`);
       await p.click('.tab[data-tab="gear"]');
       await p.click(`#wpn-list .car-card[data-id="${weapon}"]`);
@@ -63,9 +63,9 @@ function check(cond, msg) {
     await a.click('#ready-btn');
     await b.click('#ready-btn');
     await host.waitForTimeout(300);
-    const ps = await host.evaluate(() => [...window.__host.players.values()].map((p) => ({ n: p.name, w: p.weapon, h: p.avatar.hair, e: p.avatar.eyes, c: p.color, r: p.ready })));
-    check(ps.some((p) => p.n === '小櫻' && p.w === 'shotgun' && p.h === 'twin' && p.c === '#ff70a6' && p.r), '主機收到小櫻的角色、武器、顏色');
-    check(ps.some((p) => p.n === '阿翔' && p.w === 'sniper' && p.h === 'spiky' && p.e === 'sharp' && p.r), '主機收到阿翔的角色、武器');
+    const ps = await host.evaluate(() => [...window.__host.players.values()].map((p) => ({ n: p.name, w: p.weapon, s: p.avatar.species, e: p.avatar.eyes, c: p.color, r: p.ready })));
+    check(ps.some((p) => p.n === '小櫻' && p.w === 'shotgun' && p.s === 'rabbit' && p.c === '#ff70a6' && p.r), '主機收到小櫻的動物角色（兔子）、武器、顏色');
+    check(ps.some((p) => p.n === '阿翔' && p.w === 'sniper' && p.s === 'fox' && p.e === 'sharp' && p.r), '主機收到阿翔的動物角色（狐狸）、武器');
     check((await host.$$('.slot.player-card .slot-art svg')).length === 2, '等候室顯示兩位玩家的立繪');
 
     await host.click('#bot-chips .chip[data-bots="1"]');

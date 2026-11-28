@@ -1,41 +1,54 @@
-// 角色：日式動漫風格的原創角色，全部用 SVG 即時畫出來（不需要圖檔）。
+// 角色：擬人化動物（貓、狗、兔子、狐狸、熊、熊貓），復古海報風格——粗黑墨線、平塗色塊、硬邊陰影。
+// 全部用 SVG 即時畫出來（不需要圖檔）：
 //  - portraitSVG：半身立繪（手機角色設定、頒獎台）
-//  - chibiSVG：Q 版全身（射擊遊戲場上的小人）
+//  - chibiSVG：Q 版全身，有尾巴（射擊遊戲場上的小人）
 //  - faceSVG：頭像（等候室、排名等小地方）
-// 角色資料是一個小物件，例如 { hair:'twin', hairColor:'#ff9ec7', eyes:'round', ... }，
-// 主題色（衣服顏色）直接用玩家選的顏色。
+// 角色資料是一個小物件，例如 { species:'cat', fur:'#f08a3c', eyes:'round', ... }，
+// 衣服顏色直接用玩家選的代表色。
 
 export const AVATAR_OPTIONS = {
-  hair: [
-    { id: 'short', name: '短髮' }, { id: 'bob', name: '鮑伯頭' }, { id: 'long', name: '長直髮' },
-    { id: 'twin', name: '雙馬尾' }, { id: 'pony', name: '馬尾' }, { id: 'spiky', name: '刺刺頭' },
+  species: [
+    { id: 'cat', name: '貓咪' }, { id: 'dog', name: '狗狗' }, { id: 'rabbit', name: '兔子' },
+    { id: 'fox', name: '狐狸' }, { id: 'bear', name: '小熊' }, { id: 'panda', name: '熊貓' },
   ],
-  hairColor: [
-    { hex: '#2e2b3f', name: '黑' }, { hex: '#7a4a2f', name: '棕' }, { hex: '#f2c84b', name: '金' },
-    { hex: '#dfe3ee', name: '銀' }, { hex: '#ff9ec7', name: '粉' }, { hex: '#5aa0ff', name: '藍' },
-    { hex: '#9b7bff', name: '紫' }, { hex: '#e8484f', name: '紅' }, { hex: '#4fbf8a', name: '綠' },
-    { hex: '#ff9a3c', name: '橘' },
+  fur: [
+    { hex: '#f08a3c', name: '橘' }, { hex: '#f2dcb0', name: '奶油' }, { hex: '#f7f3ea', name: '白' },
+    { hex: '#a3a8b0', name: '灰' }, { hex: '#3b3640', name: '黑' }, { hex: '#8a5a3a', name: '棕' },
+    { hex: '#e3b04b', name: '金' }, { hex: '#7f97ad', name: '藍灰' }, { hex: '#c98a5a', name: '焦糖' },
   ],
-  eyes: [{ id: 'round', name: '圓圓眼' }, { id: 'sharp', name: '銳利眼' }, { id: 'happy', name: '笑瞇眼' }],
+  pattern: [
+    { id: 'none', name: '無' }, { id: 'muzzle', name: '白嘴' }, { id: 'stripes', name: '虎斑' },
+    { id: 'spots', name: '斑點' }, { id: 'mask', name: '眼罩' },
+  ],
+  eyes: [{ id: 'round', name: '圓圓眼' }, { id: 'sharp', name: '銳利眼' }, { id: 'happy', name: '笑瞇眼' }, { id: 'dot', name: '豆豆眼' }],
   eyeColor: [
     { hex: '#3b82f6', name: '藍' }, { hex: '#22a06b', name: '綠' }, { hex: '#e23d4b', name: '紅' },
     { hex: '#8b5cf6', name: '紫' }, { hex: '#e0a400', name: '金' }, { hex: '#8a5a2b', name: '棕' },
     { hex: '#ff5fa2', name: '粉' }, { hex: '#14b8c4', name: '青' },
   ],
-  mouth: [{ id: 'smile', name: '微笑' }, { id: 'grin', name: '開心' }, { id: 'cool', name: '酷酷' }, { id: 'cat', name: '貓咪嘴' }],
-  skin: [
-    { hex: '#ffe8d8', name: '白皙' }, { hex: '#ffd8bd', name: '自然' },
-    { hex: '#f0bb94', name: '小麥' }, { hex: '#c68c66', name: '古銅' },
+  mouth: [{ id: 'smile', name: '微笑' }, { id: 'grin', name: '開心' }, { id: 'cool', name: '酷酷' }, { id: 'tongue', name: '吐舌' }],
+  outfit: [
+    { id: 'jacket', name: '騎士皮衣' }, { id: 'sailor', name: '水手服' }, { id: 'hoodie', name: '帽T' },
+    { id: 'yukata', name: '浴衣' }, { id: 'suit', name: '戰鬥服' },
   ],
-  outfit: [{ id: 'sailor', name: '水手服' }, { id: 'hoodie', name: '帽T' }, { id: 'yukata', name: '浴衣' }, { id: 'suit', name: '戰鬥服' }],
   acc: [
-    { id: 'none', name: '無' }, { id: 'cat', name: '貓耳' }, { id: 'ribbon', name: '蝴蝶結' },
+    { id: 'none', name: '無' }, { id: 'goggles', name: '護目鏡' }, { id: 'ribbon', name: '蝴蝶結' },
     { id: 'glasses', name: '眼鏡' }, { id: 'phones', name: '耳機' }, { id: 'clip', name: '星星髮夾' },
   ],
 };
 
 const FIELDS = {
-  hair: 'id', hairColor: 'hex', eyes: 'id', eyeColor: 'hex', mouth: 'id', skin: 'hex', outfit: 'id', acc: 'id',
+  species: 'id', fur: 'hex', pattern: 'id', eyes: 'id', eyeColor: 'hex', mouth: 'id', outfit: 'id', acc: 'id',
+};
+
+// 每種動物預設比較像的毛色（隨機產生時比較常用）
+const NATURAL_FUR = {
+  cat: ['#f08a3c', '#a3a8b0', '#3b3640', '#f7f3ea', '#f2dcb0'],
+  dog: ['#c98a5a', '#e3b04b', '#8a5a3a', '#f7f3ea', '#f2dcb0'],
+  rabbit: ['#f7f3ea', '#a3a8b0', '#f2dcb0', '#8a5a3a'],
+  fox: ['#f08a3c', '#e3b04b', '#c98a5a'],
+  bear: ['#8a5a3a', '#c98a5a', '#3b3640', '#f2dcb0'],
+  panda: ['#3b3640'],
 };
 
 export function randomAvatar(rand = Math.random) {
@@ -44,11 +57,13 @@ export function randomAvatar(rand = Math.random) {
     const list = AVATAR_OPTIONS[k];
     a[k] = list[Math.floor(rand() * list.length)][key];
   }
+  if (rand() < 0.7) { const f = NATURAL_FUR[a.species]; a.fur = f[Math.floor(rand() * f.length)]; }
+  if (rand() < 0.4) a.pattern = 'none';
   if (rand() < 0.45) a.acc = 'none';
   return a;
 }
 
-// 收到的資料只接受選單裡有的值，其他一律換成預設
+// 收到的資料只接受選單裡有的值，其他一律換成預設（舊版的人類角色資料也會變成預設動物）
 export function sanitizeAvatar(a) {
   const out = {};
   const src = a && typeof a === 'object' ? a : {};
@@ -75,10 +90,10 @@ function lum(hex) {
   return r * 0.299 + g * 0.587 + b * 0.114;
 }
 
-const LINE = '#3b2a3f';
+const LINE = '#1d1c22';
 let uid = 0;
 
-const path = (d, fill, stroke = LINE, sw = 2, extra = '') =>
+const path = (d, fill, stroke = LINE, sw = 2.4, extra = '') =>
   `<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round" ${extra}/>`;
 const ell = (cx, cy, rx, ry, fill, stroke = 'none', sw = 0, extra = '') =>
   `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" ${extra}/>`;
@@ -87,167 +102,192 @@ const ell = (cx, cy, rx, ry, fill, stroke = 'none', sw = 0, extra = '') =>
 function mirror(d) {
   return d.replace(/(-?\d+(\.\d+)?),(-?\d+(\.\d+)?)/g, (m, x, _a, y) => `${-parseFloat(x)},${y}`);
 }
+const both = (d, fill, stroke, sw, extra) => path(d, fill, stroke, sw, extra) + path(mirror(d), fill, stroke, sw, extra);
 
-// ── 頭部（以臉中心為原點，臉寬約 90） ─────────────────
-
-const FACE = 'M-44,-18 C-45,12 -36,38 -14,54 Q0,63 14,54 C36,38 45,12 44,-18 C44,-62 -44,-62 -44,-18 Z';
-
-function backHair(a, c, chibi) {
-  const k = chibi ? 0.55 : 1;              // Q 版頭髮短一點，免得拖到地上
-  const y = (v) => (v > 40 ? 40 + (v - 40) * k : v);
-  const H = c.hairShade;
-  switch (a.hair) {
-    case 'bob':
-      return path('M-56,-20 C-60,-74 60,-74 56,-20 C58,20 60,44 52,58 Q30,66 0,61 Q-30,66 -52,58 C-60,44 -58,20 -56,-20 Z', H);
-    case 'long':
-      return path(`M-55,-25 C-60,-76 60,-76 55,-25 C62,40 66,${y(120)} 60,${y(190)} Q30,${y(200)} 0,${y(196)} Q-30,${y(200)} -60,${y(190)} C-66,${y(120)} -62,40 -55,-25 Z`, H);
-    case 'twin': {
-      const tail = `M-44,-42 C-96,-34 -104,${y(70)} -86,${y(156)} Q-80,${y(180)} -68,${y(190)} Q-70,${y(150)} -64,${y(110)} C-58,${y(60)} -52,8 -38,-24 Z`;
-      return path(tail, H) + path(mirror(tail), H) +
-        path('M-54,-10 C-58,-72 58,-72 54,-10 C56,20 48,34 40,38 L-40,38 C-48,34 -56,20 -54,-10 Z', H);
-    }
-    case 'pony':
-      return path(`M26,-56 C88,-66 100,${y(20)} 84,${y(118)} Q78,${y(150)} 64,${y(160)} Q72,${y(104)} 62,${y(62)} C56,${y(14)} 42,-20 24,-32 Z`, H) +
-        path('M-54,-10 C-58,-72 58,-72 54,-10 C56,20 48,34 40,38 L-40,38 C-48,34 -56,20 -54,-10 Z', H);
-    case 'spiky':
-      return path('M-54,-10 L-68,-38 L-52,-50 L-62,-76 L-32,-68 L-24,-94 L0,-74 L24,-96 L32,-68 L62,-80 L52,-50 L68,-36 L54,-10 C56,24 46,36 40,40 L-40,40 C-46,36 -56,24 -54,-10 Z', H);
-    default: // short
-      return path('M-53,-12 C-57,-72 57,-72 53,-12 C55,20 47,34 40,38 L-40,38 C-47,34 -55,20 -53,-12 Z', H);
-  }
-}
-
-function frontHair(a, c) {
-  const H = c.hair;
-  // 瀏海下緣的髮束（左→右），每種髮型不同
-  const fringes = {
-    short: 'L44,-4 Q40,-14 36,-24 Q32,-10 26,-2 Q22,-18 16,-28 Q10,-12 4,-2 Q0,-16 -6,-26 Q-12,-10 -18,-2 Q-22,-18 -28,-26 Q-34,-10 -40,-4',
-    bob: 'L46,-6 L40,-8 L34,-6 L28,-9 L20,-6 L12,-9 L4,-6 L-4,-9 L-12,-6 L-20,-9 L-28,-6 L-34,-9 L-40,-6',
-    long: 'L44,0 Q40,-12 34,-24 Q30,-8 22,2 Q18,-16 12,-26 Q6,-10 0,0 Q-4,-14 -10,-26 Q-16,-8 -22,2 Q-26,-14 -32,-24 Q-38,-10 -44,0',
-    twin: 'L44,-2 Q40,-14 34,-22 Q30,-8 24,0 Q20,-14 14,-24 Q8,-8 2,-2 Q-2,-16 -8,-26 Q-14,-10 -20,-2 Q-24,-16 -30,-22 Q-36,-10 -44,-2',
-    pony: 'L44,-6 Q38,-16 30,-26 Q28,-10 22,-4 Q16,-20 6,-30 Q4,-12 -2,-4 Q-8,-18 -16,-26 Q-20,-10 -26,-4 Q-32,-16 -38,-22 Q-42,-12 -44,-6',
-    spiky: 'L46,-2 L38,-18 L34,4 L24,-20 L18,0 L8,-26 L2,2 L-8,-24 L-14,0 L-24,-22 L-30,2 L-38,-16 L-46,-2',
+function colors(a, theme) {
+  const panda = a.species === 'panda';
+  const fur = panda ? '#f7f3ea' : a.fur;
+  const patch = panda ? (lum(a.fur) > 190 ? '#3b3640' : a.fur) : mix(a.fur, lum(a.fur) < 80 ? 0.35 : -0.32);
+  return {
+    uid: 'av' + (uid++),
+    theme,
+    fur,
+    shade: mix(fur, lum(fur) < 80 ? -0.45 : -0.18),
+    light: mix(fur, 0.5),
+    patch,
+    muzzle: lum(fur) > 225 ? '#ffffff' : '#f8f0e0',
+    inner: '#f3a7b5',
+    nose: ['cat', 'rabbit'].includes(a.species) ? '#e8788c' : '#2a2428',
+    eye: a.eyeColor, eyeDark: mix(a.eyeColor, -0.45), eyeLight: mix(a.eyeColor, 0.55),
   };
-  const top = 'M-50,-6 C-56,-64 -22,-76 0,-72 C22,-76 56,-64 50,-6';
-  let out = path(`${top} ${fringes[a.hair] || fringes.short} Z`, H);
-  // 兩側垂下的鬢髮
-  const side = { short: 30, bob: 46, long: 62, twin: 54, pony: 40, spiky: 22 }[a.hair] || 30;
-  const lock = `M-50,-24 Q-58,${side * 0.4} -48,${side} Q-44,${side * 0.5} -38,-8 Z`;
-  out += path(lock, H) + path(mirror(lock), H);
-  // 呆毛（刺刺頭）
-  if (a.hair === 'spiky' || a.hair === 'short') out += path('M2,-70 Q10,-96 24,-92 Q12,-88 8,-70 Z', H);
-  // 綁頭髮的髮圈（雙馬尾、馬尾）露在頭的兩側
-  if (a.hair === 'twin') out += ell(-52, -34, 7, 8, c.tie, LINE, 2) + ell(52, -34, 7, 8, c.tie, LINE, 2);
-  if (a.hair === 'pony') out += ell(48, -48, 7, 8, c.tie, LINE, 2);
-  // 頭髮光澤（天使光環）
-  out += `<path d="M-34,-46 Q0,-62 34,-46" fill="none" stroke="${c.hairLight}" stroke-width="5" stroke-linecap="round" stroke-dasharray="11 6" opacity="0.85"/>`;
-  return out;
 }
 
-function eye(a, c, side) {
-  const cx = side * 20, cy = 14;
-  const s = side;
-  if (a.eyes === 'happy') {
-    return path(`M${cx - 11},${cy + 4} Q${cx},${cy - 9} ${cx + 11},${cy + 4}`, 'none', LINE, 3.2) +
-      path(`M${cx + s * 11},${cy + 4} L${cx + s * 15},${cy}`, 'none', LINE, 2);
-  }
-  const sharp = a.eyes === 'sharp';
-  const ry = sharp ? 10 : 14, ey = sharp ? cy + 3 : cy;
-  const id = c.uid + 'iris' + (side > 0 ? 'R' : 'L');
-  let out = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.eyeDark}"/><stop offset="0.55" stop-color="${c.eye}"/><stop offset="1" stop-color="${c.eyeLight}"/></linearGradient></defs>`;
-  out += ell(cx, ey, 12, ry, '#ffffff');
-  out += ell(cx, ey + 1, sharp ? 8 : 9.5, sharp ? 9.5 : 12.5, `url(#${id})`, c.eyeDark, 1);
-  out += ell(cx, ey + 1, sharp ? 3.5 : 4.5, sharp ? 5 : 6, mix(c.eye, -0.65));
-  out += ell(cx, ey + (sharp ? 5 : 7), sharp ? 4.5 : 6, 3, c.eyeLight, 'none', 0, 'opacity="0.8"');
-  out += `<circle cx="${cx - 3.5}" cy="${ey - (sharp ? 2 : 4)}" r="${sharp ? 2.8 : 3.8}" fill="#fff"/>`;
-  out += `<circle cx="${cx + 3.5}" cy="${ey + 4}" r="1.8" fill="#fff"/>`;
-  // 上睫毛（粗）＋外側小勾、下睫毛（細）
-  if (sharp) {
-    out += path(`M${cx - s * 13},${ey - 1} Q${cx},${ey - 12} ${cx + s * 14},${ey - 8}`, 'none', LINE, 3.6);
-    out += path(`M${cx + s * 14},${ey - 8} L${cx + s * 18},${ey - 10}`, 'none', LINE, 2.2);
-  } else {
-    out += path(`M${cx - s * 13},${ey - 7} Q${cx},${ey - 19} ${cx + s * 13},${ey - 9}`, 'none', LINE, 3.4);
-    out += path(`M${cx + s * 13},${ey - 9} L${cx + s * 17},${ey - 6}`, 'none', LINE, 2.2);
-  }
-  out += path(`M${cx - 6},${ey + ry} Q${cx},${ey + ry + 1.5} ${cx + 6},${ey + ry}`, 'none', LINE, 1.4);
-  return out;
-}
+// ── 頭（以臉中心為原點，寬約 96） ──────────────────────
 
-function mouth(a) {
-  switch (a.mouth) {
-    case 'grin':
-      return path('M-8,40 Q0,41 8,40 Q6,52 0,52 Q-6,52 -8,40 Z', '#8a2b3a', LINE, 1.8) + ell(0, 49, 4, 2.6, '#ff8a9a');
-    case 'cool':
-      return path('M-5,45 L6,43', 'none', LINE, 2);
+const HEADS = {
+  cat: 'M-46,-6 C-48,-48 -26,-60 0,-60 C26,-60 48,-48 46,-6 C48,8 56,16 49,22 C44,40 24,50 0,50 C-24,50 -44,40 -49,22 C-56,16 -48,8 -46,-6 Z',
+  dog: 'M-45,-6 C-47,-48 -26,-60 0,-60 C26,-60 47,-48 45,-6 C46,30 26,54 0,54 C-26,54 -46,30 -45,-6 Z',
+  rabbit: 'M-44,-4 C-46,-46 -25,-58 0,-58 C25,-58 46,-46 44,-4 C45,28 26,50 0,50 C-26,50 -45,28 -44,-4 Z',
+  fox: 'M-44,-8 C-46,-48 -25,-60 0,-60 C25,-60 46,-48 44,-8 C46,6 62,18 52,24 C44,40 22,50 0,50 C-22,50 -44,40 -52,24 C-62,18 -46,6 -44,-8 Z',
+  bear: 'M-48,-4 C-50,-46 -28,-58 0,-58 C28,-58 50,-46 48,-4 C48,30 28,52 0,52 C-28,52 -48,30 -48,-4 Z',
+};
+HEADS.panda = HEADS.bear;
+
+// 頭後面的耳朵
+function earsBack(a, c) {
+  switch (a.species) {
     case 'cat':
-      return path('M-7,41 Q-3.5,46 0,42 Q3.5,46 7,41', 'none', LINE, 2);
-    default:
-      return path('M-6,42 Q0,47 6,42', 'none', LINE, 2);
-  }
-}
-
-function accBack(a, c) {
-  if (a.acc === 'cat') {
-    const ear = 'M-46,-44 L-40,-94 L-12,-64 Z';
-    const inner = 'M-38,-54 L-36,-82 L-20,-64 Z';
-    return path(ear, c.hair) + path(mirror(ear), c.hair) + path(inner, '#ffb3c8', 'none', 0) + path(mirror(inner), '#ffb3c8', 'none', 0);
-  }
-  return '';
-}
-
-function accFront(a, c) {
-  switch (a.acc) {
-    case 'ribbon': {
-      const col = c.theme;
-      return path('M30,-56 L14,-70 L16,-44 Z', col) + path('M30,-56 L48,-72 L46,-42 Z', col) +
-        ell(30, -56, 5, 5, mix(col, -0.2), LINE, 2);
+      return both('M-44,-28 L-48,-86 L-12,-56 Z', c.fur) + both('M-39,-40 L-42,-74 L-21,-56 Z', c.inner, 'none', 0);
+    case 'fox':
+      return both('M-42,-26 L-52,-96 L-8,-56 Z', c.fur) + both('M-38,-38 L-46,-82 L-18,-56 Z', c.muzzle, 'none', 0) +
+        both('M-49,-82 L-52,-96 L-41,-87 Z', '#2a2428', LINE, 2);
+    case 'rabbit':
+      return `<g transform="rotate(-9 -20 -84)">${ell(-20, -84, 13, 36, c.fur, LINE, 2.4)}${ell(-20, -82, 6, 27, c.inner)}</g>` +
+        `<g transform="rotate(9 20 -84)">${ell(20, -84, 13, 36, c.fur, LINE, 2.4)}${ell(20, -82, 6, 27, c.inner)}</g>`;
+    case 'bear':
+    case 'panda': {
+      const ear = a.species === 'panda' ? c.patch : c.fur;
+      const inn = a.species === 'panda' ? mix(c.patch, 0.25) : mix(c.fur, 0.35);
+      return ell(-36, -48, 16, 16, ear, LINE, 2.4) + ell(36, -48, 16, 16, ear, LINE, 2.4) +
+        ell(-36, -47, 8, 8, inn) + ell(36, -47, 8, 8, inn);
     }
-    case 'glasses':
-      return `<rect x="-34" y="2" width="28" height="22" rx="7" fill="rgba(255,255,255,0.18)" stroke="${LINE}" stroke-width="2.2"/>` +
-        `<rect x="6" y="2" width="28" height="22" rx="7" fill="rgba(255,255,255,0.18)" stroke="${LINE}" stroke-width="2.2"/>` +
-        path('M-6,10 Q0,6 6,10', 'none', LINE, 2);
-    case 'phones':
-      return path('M-54,-6 C-60,-96 60,-96 54,-6', 'none', LINE, 9) + path('M-54,-6 C-60,-96 60,-96 54,-6', 'none', '#4a4f66', 5) +
-        `<rect x="-62" y="-14" width="16" height="30" rx="7" fill="${c.theme}" stroke="${LINE}" stroke-width="2.2"/>` +
-        `<rect x="46" y="-14" width="16" height="30" rx="7" fill="${c.theme}" stroke="${LINE}" stroke-width="2.2"/>`;
-    case 'clip':
-      return path('M-34,-52 L-31,-44 L-23,-44 L-29,-39 L-27,-31 L-34,-36 L-41,-31 L-39,-39 L-45,-44 L-37,-44 Z', '#ffd23f', LINE, 1.8);
     default:
       return '';
   }
 }
 
-function colors(a, theme) {
-  const hair = a.hairColor;
-  return {
-    uid: 'av' + (uid++),
-    theme,
-    hair,
-    hairShade: mix(hair, -0.13),
-    hairLight: lum(hair) > 200 ? '#ffffff' : mix(hair, 0.55),
-    eye: a.eyeColor, eyeDark: mix(a.eyeColor, -0.45), eyeLight: mix(a.eyeColor, 0.55),
-    skin: a.skin, skinShade: mix(a.skin, -0.12),
-    tie: theme,
-  };
+// 狗的垂耳畫在臉的前面
+function earsFront(a, c) {
+  if (a.species !== 'dog') return '';
+  const ear = a.pattern === 'none' ? mix(c.fur, -0.28) : c.patch;
+  return both('M-38,-46 C-60,-48 -70,-12 -62,18 C-58,30 -46,28 -44,16 C-42,-4 -32,-30 -38,-46 Z', ear);
+}
+
+function eye(a, c, side) {
+  const cx = side * 19, cy = 6;
+  const s = side;
+  if (a.eyes === 'happy') {
+    return path(`M${cx - 10},${cy + 3} Q${cx},${cy - 8} ${cx + 10},${cy + 3}`, 'none', LINE, 3.4);
+  }
+  if (a.eyes === 'dot') {
+    return ell(cx, cy, 5.5, 7, LINE) + `<circle cx="${cx - 1.8}" cy="${cy - 2.5}" r="2" fill="#fff"/>`;
+  }
+  const sharp = a.eyes === 'sharp';
+  const ry = sharp ? 9 : 12.5, ey = sharp ? cy + 2 : cy;
+  const id = c.uid + 'iris' + (side > 0 ? 'R' : 'L');
+  let out = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.eyeDark}"/><stop offset="0.6" stop-color="${c.eye}"/><stop offset="1" stop-color="${c.eyeLight}"/></linearGradient></defs>`;
+  out += ell(cx, ey, 11, ry, '#ffffff', LINE, 1.6);
+  out += ell(cx, ey + 1, sharp ? 7.5 : 8.5, sharp ? 8.5 : 11, `url(#${id})`);
+  out += ell(cx, ey + 1, sharp ? 2.2 : 4, sharp ? 6 : 5.5, mix(c.eye, -0.7));   // 銳利眼是貓咪那種直瞳孔
+  out += `<circle cx="${cx - 3}" cy="${ey - (sharp ? 2 : 4)}" r="${sharp ? 2.6 : 3.4}" fill="#fff"/>`;
+  out += `<circle cx="${cx + 3}" cy="${ey + 4}" r="1.5" fill="#fff"/>`;
+  // 粗上眼線＋外側小勾
+  out += path(`M${cx - s * 12},${ey - ry * 0.45} Q${cx},${ey - ry - 5} ${cx + s * 12},${ey - ry * 0.55}`, 'none', LINE, 3.4);
+  out += path(`M${cx + s * 12},${ey - ry * 0.55} L${cx + s * 16},${ey - ry * 0.75}`, 'none', LINE, 2.2);
+  return out;
+}
+
+function noseMouth(a, c) {
+  const small = ['cat', 'rabbit'].includes(a.species);
+  let out = small
+    ? path('M-4.5,18 L4.5,18 L0,23 Z', c.nose, LINE, 1.6)
+    : ell(0, 19, 6.5, 4.6, c.nose, LINE, 1.4) + ell(-2, 17.5, 2, 1.2, 'rgba(255,255,255,0.7)');
+  out += path('M0,23 L0,26', 'none', LINE, 1.8);
+  switch (a.mouth) {
+    case 'grin':
+      out += path('M-9,26 Q0,40 9,26 Z', '#8a2b3a', LINE, 1.8) + ell(0, 33, 4.5, 2.6, '#ff8a9a') +
+        path('M4,26 L5,30 L7,26.5', '#ffffff', LINE, 1);
+      break;
+    case 'cool':
+      out += path('M-7,29 L7,27', 'none', LINE, 2);
+      break;
+    case 'tongue':
+      out += ell(2.5, 31.5, 4, 5, '#f0788a', LINE, 1.4) + path('M-8,26 Q-4,31 0,26 Q4,31 8,26', 'none', LINE, 2);
+      break;
+    default:
+      out += path('M-8,26 Q-4,31 0,26 Q4,31 8,26', 'none', LINE, 2);
+  }
+  if (['cat', 'fox'].includes(a.species)) {
+    out += both('M-28,22 L-52,18', 'none', LINE, 1.3, 'opacity="0.75"') + both('M-28,27 L-50,30', 'none', LINE, 1.3, 'opacity="0.75"');
+  }
+  return out;
+}
+
+// 花紋、口鼻部、陰影：都裁切在臉的形狀裡
+function faceMarkings(a, c, head) {
+  const clip = c.uid + 'head';
+  let inner = '';
+  // 硬邊陰影：光從左上照過來，右下留一塊深色（像海報上的強烈日照）
+  inner += `<rect x="-70" y="-70" width="140" height="130" fill="${c.shade}"/>` + ell(-8, -8, 50, 52, c.fur);
+  // 口鼻部
+  if (a.species === 'fox') {
+    inner += path('M-56,18 C-36,10 -14,20 0,20 C14,20 36,10 56,18 C46,44 22,54 0,54 C-22,54 -46,44 -56,18 Z', c.muzzle, 'none', 0);
+  } else if (['dog', 'bear', 'panda'].includes(a.species) || a.pattern === 'muzzle') {
+    inner += ell(0, 28, a.pattern === 'muzzle' ? 30 : 19, a.pattern === 'muzzle' ? 22 : 14, c.muzzle);
+  } else {
+    inner += ell(-7, 27, 9.5, 7, c.muzzle) + ell(7, 27, 9.5, 7, c.muzzle);
+  }
+  if (a.pattern === 'muzzle' && a.species !== 'fox') inner += path('M-6,-60 Q0,-20 6,-60 Z', c.muzzle, 'none', 0);
+  if (a.pattern === 'stripes') {
+    inner += ['M-12,-60 L-7,-44', 'M0,-62 L0,-46', 'M12,-60 L7,-44'].map((d) => path(d, 'none', c.patch, 5)).join('') +
+      both('M-50,2 L-36,5', 'none', c.patch, 4.5) + both('M-50,12 L-38,13', 'none', c.patch, 4.5);
+  } else if (a.pattern === 'spots') {
+    inner += ell(-27, -36, 10, 8, c.patch) + ell(30, -30, 8, 7, c.patch) + ell(36, 22, 7, 6, c.patch) + ell(-12, -50, 5, 4, c.patch);
+  } else if (a.pattern === 'mask') {
+    inner += path('M-50,-6 C-36,-16 -10,-10 0,-2 C10,-10 36,-16 50,-6 C50,10 34,22 20,18 C10,16 6,12 0,12 C-6,12 -10,16 -20,18 C-34,22 -50,10 -50,-6 Z', c.patch, 'none', 0);
+  }
+  if (a.species === 'panda') {
+    inner += `<ellipse cx="-19" cy="8" rx="13" ry="16" fill="${c.patch}" transform="rotate(25 -19 8)"/>` +
+      `<ellipse cx="19" cy="8" rx="13" ry="16" fill="${c.patch}" transform="rotate(-25 19 8)"/>`;
+  }
+  // 左上的高光筆觸
+  inner += path('M-32,-42 Q-20,-54 -6,-55', 'none', c.light, 4.5, 'opacity="0.9"');
+  return `<defs><clipPath id="${clip}"><path d="${head}"/></clipPath></defs><g clip-path="url(#${clip})">${inner}</g>`;
+}
+
+function tuft(a, c) {
+  if (!['cat', 'fox', 'dog'].includes(a.species)) return '';
+  return path('M-12,-57 Q-8,-74 0,-62 Q6,-76 12,-57 Z', c.fur, LINE, 2.2);
+}
+
+function accFront(a, c) {
+  const T = c.theme;
+  switch (a.acc) {
+    case 'ribbon':
+      return path('M30,-56 L14,-70 L16,-44 Z', T) + path('M30,-56 L48,-72 L46,-42 Z', T) + ell(30, -56, 5, 5, mix(T, -0.2), LINE, 2);
+    case 'glasses':
+      return `<rect x="-33" y="-5" width="28" height="22" rx="7" fill="rgba(255,255,255,0.18)" stroke="${LINE}" stroke-width="2.6"/>` +
+        `<rect x="5" y="-5" width="28" height="22" rx="7" fill="rgba(255,255,255,0.18)" stroke="${LINE}" stroke-width="2.6"/>` +
+        path('M-5,3 Q0,-1 5,3', 'none', LINE, 2.4);
+    case 'phones':
+      return path('M-52,-4 C-58,-90 58,-90 52,-4', 'none', LINE, 9) + path('M-52,-4 C-58,-90 58,-90 52,-4', 'none', '#c9d2d8', 5) +
+        `<rect x="-62" y="-14" width="17" height="30" rx="7" fill="${T}" stroke="${LINE}" stroke-width="2.4"/>` +
+        `<rect x="45" y="-14" width="17" height="30" rx="7" fill="${T}" stroke="${LINE}" stroke-width="2.4"/>`;
+    case 'clip':
+      return path('M-30,-52 L-27,-44 L-19,-44 L-25,-39 L-23,-31 L-30,-36 L-37,-31 L-35,-39 L-41,-44 L-33,-44 Z', '#f3c93e', LINE, 1.8);
+    case 'goggles':
+      // 騎士護目鏡推在額頭上：皮帶＋鍍鉻框＋青色鏡片
+      return path('M-48,-30 Q0,-44 48,-30', 'none', LINE, 9) + path('M-48,-30 Q0,-44 48,-30', 'none', '#6b4a32', 5) +
+        [-16, 16].map((x) => `<circle cx="${x}" cy="-36" r="12" fill="#c9d2d8" stroke="${LINE}" stroke-width="2.4"/>` +
+          `<circle cx="${x}" cy="-36" r="8" fill="#2ec4d0" stroke="${LINE}" stroke-width="1.6"/>` +
+          `<path d="M${x - 5},-39 Q${x - 2},-43 ${x + 2},-42" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`).join('');
+    default:
+      return '';
+  }
 }
 
 function headParts(a, c) {
-  const clip = c.uid + 'face';
-  const front =
-    accBack(a, c) +
-    ell(-44, 8, 6, 10, c.skin, LINE, 2) + ell(44, 8, 6, 10, c.skin, LINE, 2) +
-    path(FACE, c.skin, LINE, 2.2) +
-    `<defs><clipPath id="${clip}"><path d="${FACE}"/></clipPath></defs>` +
-    `<path d="M-46,-14 Q0,8 46,-14 L46,-40 L-46,-40 Z" fill="${c.skinShade}" clip-path="url(#${clip})"/>` +
-    ell(-27, 31, 8, 4, '#ff7a9a', 'none', 0, 'opacity="0.38"') + ell(27, 31, 8, 4, '#ff7a9a', 'none', 0, 'opacity="0.38"') +
+  const head = HEADS[a.species] || HEADS.cat;
+  return earsBack(a, c) +
+    path(head, c.fur, LINE, 2.8) +
+    faceMarkings(a, c, head) +
+    path(head, 'none', LINE, 2.8) +
+    tuft(a, c) +
+    earsFront(a, c) +
+    ell(-28, 18, 7, 4, '#ff6f7f', 'none', 0, 'opacity="0.4"') + ell(28, 18, 7, 4, '#ff6f7f', 'none', 0, 'opacity="0.4"') +
     eye(a, c, -1) + eye(a, c, 1) +
-    path('M-1,30 L1,33', 'none', LINE, 1.4, 'opacity="0.6"') +
-    mouth(a) +
-    frontHair(a, c) +
-    // 眉毛畫在瀏海上面、半透明（動漫常見畫法）
-    path('M-29,-3 Q-20,-8 -11,-4', 'none', mix(c.hair, -0.5), 2.2, 'opacity="0.6"') +
-    path('M29,-3 Q20,-8 11,-4', 'none', mix(c.hair, -0.5), 2.2, 'opacity="0.6"') +
+    noseMouth(a, c) +
     accFront(a, c);
-  return front;
 }
 
 // ── 身體 ─────────────────────────────────────────────
@@ -257,30 +297,40 @@ function portraitBody(a, c) {
   const T = c.theme;
   const dark = mix(T, -0.3);
   const torso = 'M58,152 Q100,144 142,152 Q170,160 174,192 L178,240 L22,240 L26,192 Q30,160 58,152 Z';
-  const arms = path('M50,178 Q54,212 52,240', 'none', LINE, 1.8, 'opacity="0.55"') + path('M150,178 Q146,212 148,240', 'none', LINE, 1.8, 'opacity="0.55"');
-  const neck = `<rect x="89" y="120" width="22" height="38" fill="${c.skin}" stroke="${LINE}" stroke-width="2"/>` +
-    `<path d="M89,128 Q100,140 111,128 L111,138 Q100,146 89,138 Z" fill="${c.skinShade}"/>`;
+  const arms = path('M50,178 Q54,212 52,240', 'none', LINE, 2, 'opacity="0.6"') + path('M150,178 Q146,212 148,240', 'none', LINE, 2, 'opacity="0.6"');
+  const neck = `<rect x="88" y="118" width="24" height="40" fill="${c.fur}" stroke="${LINE}" stroke-width="2.4"/>` +
+    `<path d="M88,126 Q100,140 112,126 L112,138 Q100,148 88,138 Z" fill="${c.shade}"/>`;
+  // 衣服右下的硬邊陰影
+  const shadow = `<path d="M120,150 Q170,160 174,192 L178,240 L132,240 Q150,200 120,150 Z" fill="rgba(29,28,34,0.18)"/>`;
   let out = neck;
   switch (a.outfit) {
+    case 'jacket':
+      // 騎士皮衣：深色皮革＋斜拉鍊＋代表色肩線
+      out += path(torso, '#2e2a2c', LINE, 2.6) + arms +
+        path('M30,168 Q44,152 62,154 L60,170 Q44,170 32,180 Z', T, LINE, 2) +
+        path('M170,168 Q156,152 138,154 L140,170 Q156,170 168,180 Z', T, LINE, 2) +
+        path('M74,150 L100,176 L86,204 Z', '#4a4346', LINE, 2) + path('M126,150 L100,176 L114,204 Z', '#4a4346', LINE, 2) +
+        path('M112,180 L92,240', 'none', '#c9d2d8', 3) + ell(111, 182, 3, 4, '#c9d2d8', LINE, 1.2) +
+        path('M40,210 L64,206', 'none', '#c9d2d8', 2.4) +
+        `<path d="M60,160 Q70,190 58,230" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="5" stroke-linecap="round"/>`;
+      break;
     case 'hoodie':
-      out += path('M66,150 Q100,174 134,150 Q126,140 100,140 Q74,140 66,150 Z', dark) +   // 帽子
-        path(torso, T, LINE, 2.4) + arms +
+      out += path('M66,150 Q100,174 134,150 Q126,140 100,140 Q74,140 66,150 Z', dark) +
+        path(torso, T, LINE, 2.6) + arms +
         path('M90,160 L88,196', 'none', '#ffffff', 2.4) + path('M110,160 L112,196', 'none', '#ffffff', 2.4) +
         ell(88, 198, 2.6, 3.4, '#ffffff', LINE, 1) + ell(112, 198, 2.6, 3.4, '#ffffff', LINE, 1) +
-        path('M70,226 Q100,218 130,226 L132,240 L68,240 Z', mix(T, -0.12), LINE, 1.6);
+        path('M70,226 Q100,218 130,226 L132,240 L68,240 Z', mix(T, -0.12), LINE, 1.8);
       break;
     case 'yukata':
-      out += path(torso, mix(T, 0.25), LINE, 2.4) + arms +
-        // 花紋
+      out += path(torso, mix(T, 0.25), LINE, 2.6) + arms +
         [[48, 200], [70, 226], [128, 206], [150, 230], [116, 236], [60, 178], [140, 176]]
           .map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4" fill="#ffffff" opacity="0.8"/><circle cx="${x}" cy="${y}" r="1.5" fill="${dark}"/>`).join('') +
-        path('M86,152 L118,214', 'none', '#ffffff', 7) + path('M86,152 L118,214', 'none', LINE, 1.4, 'opacity="0.4"') +
-        path('M114,152 L96,190', 'none', '#ffffff', 7) +
-        path('M40,214 L160,214 L162,240 L38,240 Z', dark, LINE, 2) +
-        path('M40,222 L160,222', 'none', '#ffd23f', 3);
+        path('M86,152 L118,214', 'none', '#ffffff', 7) + path('M114,152 L96,190', 'none', '#ffffff', 7) +
+        path('M40,214 L160,214 L162,240 L38,240 Z', dark, LINE, 2.2) +
+        path('M40,222 L160,222', 'none', '#f3c93e', 3);
       break;
     case 'suit':
-      out += path(torso, '#2c3150', LINE, 2.4) + arms +
+      out += path(torso, '#2c3150', LINE, 2.6) + arms +
         path('M30,160 Q44,148 62,154 L58,176 Q42,176 30,182 Z', T, LINE, 2) +
         path('M170,160 Q156,148 138,154 L142,176 Q158,176 170,182 Z', T, LINE, 2) +
         path('M100,156 L100,240', 'none', T, 3) + path('M76,170 L92,186 L92,240', 'none', T, 2.2, 'opacity="0.9"') +
@@ -288,47 +338,69 @@ function portraitBody(a, c) {
         `<circle cx="100" cy="196" r="8" fill="${mix(T, 0.4)}" stroke="${LINE}" stroke-width="2"/>`;
       break;
     default: // sailor
-      out += path(torso, '#f7f8ff', LINE, 2.4) + arms +
-        path('M60,152 L100,196 L140,152 L158,162 L152,184 L100,218 L48,184 L42,162 Z', T, LINE, 2) +
+      out += path(torso, '#f7f4ec', LINE, 2.6) + arms +
+        path('M60,152 L100,196 L140,152 L158,162 L152,184 L100,218 L48,184 L42,162 Z', T, LINE, 2.2) +
         path('M52,166 L100,206 L148,166', 'none', '#ffffff', 2.4) +
-        path('M100,198 L88,222 L100,216 L112,222 Z', '#e8484f', LINE, 1.8) +
-        ell(100, 200, 6, 5, '#e8484f', LINE, 1.8);
+        path('M100,198 L88,222 L100,216 L112,222 Z', '#e8452c', LINE, 1.8) +
+        ell(100, 200, 6, 5, '#e8452c', LINE, 1.8);
   }
-  return out;
+  return out + shadow;
 }
 
 // Q 版：畫面座標 (0..120, 0..150)，身體中心 x=60
+function tail(a, c) {
+  const stroke = (d, col, w) => path(d, 'none', LINE, w + 4) + path(d, 'none', col, w);
+  switch (a.species) {
+    case 'cat': return stroke('M74,122 C98,120 102,96 92,82', c.fur, 6);
+    case 'dog': return stroke('M74,118 C88,112 92,100 86,92', c.fur, 6);
+    case 'rabbit': return ell(77, 122, 8, 7, c.muzzle, LINE, 2);
+    case 'fox': return path('M70,120 C96,130 110,104 100,84 C96,98 88,104 72,110 Z', c.fur, LINE, 2.2) + path('M100,84 C104,92 103,98 99,102 C96,96 96,90 100,84 Z', c.muzzle, LINE, 1.6);
+    case 'panda': return ell(75, 122, 6, 5, c.patch, LINE, 2);
+    default: return ell(75, 122, 6, 5, c.fur, LINE, 2);
+  }
+}
+
 function chibiBody(a, c) {
   const T = c.theme;
   const dark = mix(T, -0.3);
-  let legs = path('M50,124 L49,140', 'none', c.skin, 7) + path('M70,124 L71,140', 'none', c.skin, 7) +
-    path('M43,141 Q49,136 55,141 L55,145 L43,145 Z', '#3b2a3f', LINE, 1.4) +
-    path('M65,141 Q71,136 77,141 L77,145 L65,145 Z', '#3b2a3f', LINE, 1.4);
-  const arms = path('M42,104 Q34,114 36,122', 'none', c.skin, 6) + path('M78,104 Q86,114 84,122', 'none', c.skin, 6);
+  const limb = c.species === 'panda' ? c.patch : c.fur;
+  let legs = path('M50,124 L49,140', 'none', LINE, 10) + path('M50,124 L49,140', 'none', limb, 6.5) +
+    path('M70,124 L71,140', 'none', LINE, 10) + path('M70,124 L71,140', 'none', limb, 6.5) +
+    path('M43,141 Q49,136 55,141 L55,145 L43,145 Z', '#2e2a2c', LINE, 1.6) +
+    path('M65,141 Q71,136 77,141 L77,145 L65,145 Z', '#2e2a2c', LINE, 1.6);
+  const arms = path('M42,104 Q34,114 36,122', 'none', LINE, 9.5) + path('M42,104 Q34,114 36,122', 'none', limb, 6) +
+    path('M78,104 Q86,114 84,122', 'none', LINE, 9.5) + path('M78,104 Q86,114 84,122', 'none', limb, 6);
   let body;
   switch (a.outfit) {
+    case 'jacket':
+      body = path('M40,100 Q60,94 80,100 L82,128 L38,128 Z', '#2e2a2c', LINE, 2) +
+        ell(40, 103, 6, 5, T, LINE, 1.4) + ell(80, 103, 6, 5, T, LINE, 1.4) + path('M63,104 L57,128', 'none', '#c9d2d8', 2);
+      break;
     case 'hoodie':
-      body = path('M40,100 Q60,94 80,100 L82,126 L38,126 Z', T, LINE, 1.8) + path('M50,98 Q60,106 70,98', 'none', dark, 3) +
-        path('M42,124 L78,124 L78,130 L42,130 Z', '#3a3f5c', LINE, 1.4);
+      body = path('M40,100 Q60,94 80,100 L82,126 L38,126 Z', T, LINE, 2) + path('M50,98 Q60,106 70,98', 'none', dark, 3) +
+        path('M42,124 L78,124 L78,130 L42,130 Z', '#2e3b55', LINE, 1.6);
       break;
     case 'yukata':
-      legs = path('M43,141 Q49,137 55,141 L55,145 L43,145 Z', '#7a4a2f', LINE, 1.4) + path('M65,141 Q71,137 77,141 L77,145 L65,145 Z', '#7a4a2f', LINE, 1.4);
-      body = path('M40,100 Q60,94 80,100 L84,142 L36,142 Z', mix(T, 0.25), LINE, 1.8) +
-        path('M52,99 L66,122', 'none', '#ffffff', 4) + path('M38,116 L82,116 L82,124 L38,124 Z', dark, LINE, 1.4);
+      legs = path('M43,141 Q49,137 55,141 L55,145 L43,145 Z', '#7a4a2f', LINE, 1.6) + path('M65,141 Q71,137 77,141 L77,145 L65,145 Z', '#7a4a2f', LINE, 1.6);
+      body = path('M40,100 Q60,94 80,100 L84,142 L36,142 Z', mix(T, 0.25), LINE, 2) +
+        path('M52,99 L66,122', 'none', '#ffffff', 4) + path('M38,116 L82,116 L82,124 L38,124 Z', dark, LINE, 1.6);
       break;
     case 'suit':
-      body = path('M40,100 Q60,94 80,100 L82,128 L38,128 Z', '#2c3150', LINE, 1.8) + path('M60,100 L60,128', 'none', T, 2.4) +
+      body = path('M40,100 Q60,94 80,100 L82,128 L38,128 Z', '#2c3150', LINE, 2) + path('M60,100 L60,128', 'none', T, 2.4) +
         ell(40, 103, 6, 5, T, LINE, 1.4) + ell(80, 103, 6, 5, T, LINE, 1.4);
       break;
     default:
-      body = path('M40,100 Q60,94 80,100 L80,120 L40,120 Z', '#f7f8ff', LINE, 1.8) +
-        path('M46,99 L60,112 L74,99', 'none', T, 4) + path('M38,118 L82,118 L86,130 L34,130 Z', T, LINE, 1.6) +
-        ell(60, 110, 3.5, 3, '#e8484f', LINE, 1);
+      body = path('M40,100 Q60,94 80,100 L80,120 L40,120 Z', '#f7f4ec', LINE, 2) +
+        path('M46,99 L60,112 L74,99', 'none', T, 4) + path('M38,118 L82,118 L86,130 L34,130 Z', T, LINE, 1.8) +
+        ell(60, 110, 3.5, 3, '#e8452c', LINE, 1);
   }
-  return legs + arms + body;
+  return tail(a, c) + legs + arms + body;
 }
 
 // ── 對外的畫圖函式 ───────────────────────────────────
+
+// Q 版圖的 viewBox（射擊遊戲在 canvas 上畫小人時要用來對齊腳的位置）
+export const CHIBI_VIEW = { x: 0, y: -34, w: 120, h: 184 };
 
 function svgWrap(viewBox, inner, w, h) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}"${w ? ` width="${w}"` : ''}${h ? ` height="${h}"` : ''}>${inner}</svg>`;
@@ -336,27 +408,25 @@ function svgWrap(viewBox, inner, w, h) {
 
 export function portraitSVG(avatar, theme = '#3a86ff', size = {}) {
   const a = sanitizeAvatar(avatar);
-  const c = colors(a, theme);
-  const head = (inner) => `<g transform="translate(100,84) scale(0.92)">${inner}</g>`;
-  const inner = head(backHair(a, c, false)) + portraitBody(a, c) + head(headParts(a, c));
+  const c = { ...colors(a, theme), species: a.species };
+  const inner = portraitBody(a, c) + `<g transform="translate(100,84) scale(0.92)">${headParts(a, c)}</g>`;
   // crop:'bust' 只取頭和肩膀（等候室小卡片用）
-  return svgWrap(size.crop === 'bust' ? '24 -16 152 168' : '0 -16 200 256', inner, size.w, size.h);
+  return svgWrap(size.crop === 'bust' ? '24 -32 152 184' : '0 -30 200 270', inner, size.w, size.h);
 }
 
 export function chibiSVG(avatar, theme = '#3a86ff', size = {}) {
   const a = sanitizeAvatar(avatar);
-  const c = colors(a, theme);
-  const head = (inner) => `<g transform="translate(60,56) scale(0.66)">${inner}</g>`;
+  const c = { ...colors(a, theme), species: a.species };
   const inner = `<ellipse cx="60" cy="146" rx="22" ry="4" fill="rgba(0,0,0,0.22)"/>` +
-    head(backHair(a, c, true)) + chibiBody(a, c) + head(headParts(a, c));
-  return svgWrap('0 -10 120 160', inner, size.w, size.h);
+    chibiBody(a, c) + `<g transform="translate(60,56) scale(0.66)">${headParts(a, c)}</g>`;
+  const v = CHIBI_VIEW;
+  return svgWrap(`${v.x} ${v.y} ${v.w} ${v.h}`, inner, size.w, size.h);
 }
 
 export function faceSVG(avatar, theme = '#3a86ff', size = {}) {
   const a = sanitizeAvatar(avatar);
   const c = colors(a, theme);
-  const inner = backHair(a, c, true) + headParts(a, c);
-  return svgWrap('-72 -100 144 156', inner, size.w, size.h);
+  return svgWrap('-72 -96 144 156', headParts(a, c), size.w, size.h);
 }
 
 // 給 canvas 用：把 SVG 轉成圖片（同樣的角色只轉一次）

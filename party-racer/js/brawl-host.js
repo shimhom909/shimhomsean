@@ -250,7 +250,7 @@ window.addEventListener('resize', () => {
 function render(dt) {
   const m = S.match;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = m.arena.theme === 'shrine' ? '#7fa58a' : '#2f6f6a';
+  ctx.fillStyle = m.arena.theme === 'shrine' ? '#d6c8aa' : '#7cc4cc';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.setTransform(...view.m);
   ctx.drawImage(bg, 0, 0, ARENA_W, ARENA_H);

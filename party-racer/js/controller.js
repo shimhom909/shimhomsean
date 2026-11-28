@@ -300,12 +300,12 @@ function changed() {
 // ── 角色設定 ─────────────────────────────────────────
 
 const AV_FIELDS = [
-  { key: 'hair', label: '髮型', thumb: 'face' },
-  { key: 'hairColor', label: '髮色', swatch: true },
+  { key: 'species', label: '動物', thumb: 'face' },
+  { key: 'fur', label: '毛色', swatch: true },
+  { key: 'pattern', label: '花紋', thumb: 'face' },
   { key: 'eyes', label: '眼睛', thumb: 'face' },
   { key: 'eyeColor', label: '眼睛顏色', swatch: true },
   { key: 'mouth', label: '表情', thumb: 'face' },
-  { key: 'skin', label: '膚色', swatch: true },
   { key: 'outfit', label: '服裝', thumb: 'bust' },
   { key: 'acc', label: '配件', thumb: 'face' },
 ];

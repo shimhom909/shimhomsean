@@ -67,7 +67,7 @@ export const FUN_NAMES = [
 // ── 賽道 ─────────────────────────────────────────────
 // points：賽道中心線的控制點（世界座標 1600×900），會用平滑曲線連起來。
 // 第一個點是起終點線，起跑格排在它的後方，所以第一點前後要是直線。
-// theme：場景風格（只影響畫面，不影響操控）— meadow 森林、park 夜之樂園、desert 沙漠
+// theme：場景風格（只影響畫面，不影響操控）— meadow 海岸草原、park 彩繪樂園、desert 沙漠
 export const TRACKS = [
   {
     id: 'sunny', name: '陽光環道', desc: '寬敞好開，適合新手', width: 110, theme: 'meadow',

@@ -1,6 +1,6 @@
 // 繪圖：車子造型、選車展示台、起終點拱門。主機畫面與手機共用。
 
-export const INK = '#0d2a36';   // 卡通風格的深青藍描邊色
+export const INK = '#1d1c22';   // 海報風格的黑墨線
 
 // ── 顏色工具 ──
 function hexToRgb(hex) {
@@ -186,7 +186,7 @@ export function drawShowcase(canvas, shape, color, angle = -0.6, { platform = tr
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = INK;
     // 台座側面
-    ctx.fillStyle = '#2f6670';
+    ctx.fillStyle = '#8e99a3';
     ctx.beginPath();
     ctx.ellipse(cx, cy + band, rx, ry, 0, 0, Math.PI);
     ctx.lineTo(cx - rx, cy);
@@ -195,11 +195,11 @@ export function drawShowcase(canvas, shape, color, angle = -0.6, { platform = tr
     ctx.fill(); ctx.stroke();
     // 台面
     const g = ctx.createRadialGradient(cx, cy - ry * 0.3, rx * 0.1, cx, cy, rx);
-    g.addColorStop(0, '#f6fbd6');
-    g.addColorStop(1, '#bfe6d8');
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(1, '#cfdade');
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = 'rgba(13,42,54,0.18)';
+    ctx.strokeStyle = 'rgba(29,28,34,0.18)';
     ctx.lineWidth = 2;
     ctx.beginPath(); ctx.ellipse(cx, cy, rx * 0.72, ry * 0.72, 0, 0, Math.PI * 2); ctx.stroke();
   }
@@ -244,7 +244,7 @@ export function drawGantry(ctx, track) {
   ctx.fillStyle = 'rgba(0,0,0,0.22)';
   ctx.fillRect(-6 + 8, -span + 10, 14, span * 2);
   // 橫桿
-  ctx.fillStyle = '#1f8f86';
+  ctx.fillStyle = '#e8452c';
   ctx.strokeStyle = INK;
   ctx.lineWidth = 2.5;
   ctx.beginPath();
@@ -254,7 +254,7 @@ export function drawGantry(ctx, track) {
   ctx.fillRect(-5, -span + 2, 4, span * 2 - 4);
   // 柱子
   for (const y of [-span, span]) {
-    ctx.fillStyle = '#cfe455';
+    ctx.fillStyle = '#f3c93e';
     ctx.beginPath(); ctx.arc(0, y, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   }
   // 字
