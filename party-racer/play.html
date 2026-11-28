@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#2a5fa8">
+<meta name="theme-color" content="#1b1a1f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <title>派對遊戲 · 搖桿</title>
+<link rel="preload" href="fonts/bangers.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/style.css">
 <script type="module" src="js/backdrop.js"></script>
 </head>
@@ -121,9 +122,11 @@
         <svg viewBox="0 0 120 92">
           <defs>
             <linearGradient id="speedo-grad" x1="0" x2="1" y1="0" y2="0">
-              <stop offset="0" stop-color="#2fcf72"/><stop offset=".6" stop-color="#ffd23f"/><stop offset="1" stop-color="#ff4f5e"/>
+              <stop offset="0" stop-color="#3fa34d"/><stop offset=".6" stop-color="#ffcf33"/><stop offset="1" stop-color="#e23a2c"/>
             </linearGradient>
           </defs>
+          <path class="ticks" d="M 11.5 88 A 56 56 0 1 1 108.5 88" pathLength="100" stroke-dasharray="1.2 8.8"/>
+          <path class="rim" d="M 21 82.5 A 45 45 0 1 1 99 82.5"/>
           <path class="track" d="M 21 82.5 A 45 45 0 1 1 99 82.5" pathLength="100"/>
           <path id="speedo-val" class="val" d="M 21 82.5 A 45 45 0 1 1 99 82.5" pathLength="100" stroke-dasharray="0 100"/>
         </svg>
@@ -132,9 +135,9 @@
       <div id="pad-msg" class="pad-msg"></div>
     </div>
     <div class="pedals">
-      <button id="btn-nitro" class="pbtn nitro"><i class="charge"></i><span>氮氣</span></button>
-      <button id="btn-brake" class="pbtn brake"><span>煞車</span><small>停下後按住＝倒車</small></button>
-      <button id="btn-gas" class="pbtn gas"><span>油門</span></button>
+      <button id="btn-nitro" class="pbtn nitro" data-sfx="WHOOSH!"><i class="charge"></i><span>氮氣</span></button>
+      <button id="btn-brake" class="pbtn brake" data-sfx="SKREECH!"><span>煞車</span><small>停下後按住＝倒車</small></button>
+      <button id="btn-gas" class="pbtn gas" data-sfx="VROOM!"><span>油門</span></button>
     </div>
   </div>
 </section>
@@ -154,7 +157,7 @@
       <div class="b-stats"><span>擊倒 <b id="b-ko">0</b></span><span>被擊倒 <b id="b-de">0</b></span><span class="b-time" id="b-time">-:--</span></div>
       <div id="b-buffs" class="b-buffs"></div>
       <div id="b-msg" class="pad-msg"></div>
-      <button id="btn-dash" class="pbtn dash"><i class="charge"></i><span>衝刺</span></button>
+      <button id="btn-dash" class="pbtn dash" data-sfx="ZOOM!"><i class="charge"></i><span>衝刺</span></button>
     </div>
     <div id="stick-aim" class="stick-zone aim">
       <div class="stick-base"><div class="stick-knob"></div></div>

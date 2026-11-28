@@ -163,7 +163,7 @@ jobs:
           # 派對遊戲（賽車、彩彈大亂鬥）：純靜態網頁，部署在 /party-racer/（不含測試檔）
           mkdir -p _site/party-racer
           cp -r party-racer/index.html party-racer/host.html party-racer/brawl.html party-racer/play.html \
-                party-racer/css party-racer/js party-racer/img party-racer/vendor _site/party-racer/
+                party-racer/css party-racer/js party-racer/img party-racer/fonts party-racer/vendor _site/party-racer/
 
       - uses: actions/upload-pages-artifact@v3
         with:

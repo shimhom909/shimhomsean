@@ -193,6 +193,57 @@ function fitCanvas(canvas) {
   return { dpr, w, h };
 }
 
+// 展示台（線稿風）：米色台面＋外圈青色網點、側面斜線陰影、粗墨線
+const platformCache = new Map();
+function drawPlatform(ctx, cx, cy, rx, ry, band) {
+  ctx.lineJoin = 'round';
+  const side = () => {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + band, rx, ry, 0, 0, Math.PI);
+    ctx.lineTo(cx - rx, cy);
+    ctx.ellipse(cx, cy, rx, ry, 0, Math.PI, 0, true);
+    ctx.closePath();
+  };
+  const top = () => { ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); };
+  // 側面：淡木色，右半邊斜線
+  ctx.fillStyle = '#dcc79f';
+  side(); ctx.fill();
+  ctx.save();
+  side(); ctx.clip();
+  ctx.strokeStyle = 'rgba(27,26,31,0.6)';
+  ctx.lineWidth = 1.3;
+  const y0 = cy - 2, y1 = cy + ry + band + 2;
+  for (let x = cx - rx * 0.25; x < cx + rx + (y1 - y0); x += 4.5) {
+    ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x - (y1 - y0), y1); ctx.stroke();
+  }
+  ctx.restore();
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 2.6;
+  side(); ctx.stroke();
+  // 台面：紙色，外圈網點越往外越大
+  ctx.fillStyle = '#fbf1d8';
+  top(); ctx.fill();
+  ctx.save();
+  top(); ctx.clip();
+  ctx.fillStyle = 'rgba(47,179,217,0.6)';
+  const step = Math.max(5, rx / 18);
+  for (let y = cy - ry; y <= cy + ry; y += step * 0.8) {
+    const row = Math.round((y - cy) / (step * 0.8));
+    for (let x = cx - rx + (row % 2 ? step / 2 : 0); x <= cx + rx; x += step) {
+      const d = Math.hypot((x - cx) / rx, (y - cy) / ry);
+      const t = (d - 0.58) / 0.42;
+      if (t <= 0) continue;
+      ctx.beginPath(); ctx.arc(x, y, step * 0.42 * Math.min(1, t), 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.restore();
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 2.6;
+  top(); ctx.stroke();
+  ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.ellipse(cx, cy, rx * 0.58, ry * 0.58, 0, 0, Math.PI * 2); ctx.stroke();
+}
+
 // 回傳 false 表示 canvas 目前看不到（所在畫面隱藏中），沒有畫
 export function drawShowcase(canvas, shape, color, angle = -0.6, { platform = true, face = null } = {}) {
   const fit = fitCanvas(canvas);
@@ -210,25 +261,22 @@ export function drawShowcase(canvas, shape, color, angle = -0.6, { platform = tr
   const band = rx * 0.12;
   const cy = h - 5 - band - ry;
   if (platform) {
-    ctx.lineWidth = 2.5;
-    ctx.strokeStyle = INK;
-    // 台座側面
-    ctx.fillStyle = '#8e99a3';
-    ctx.beginPath();
-    ctx.ellipse(cx, cy + band, rx, ry, 0, 0, Math.PI);
-    ctx.lineTo(cx - rx, cy);
-    ctx.ellipse(cx, cy, rx, ry, 0, Math.PI, 0, true);
-    ctx.closePath();
-    ctx.fill(); ctx.stroke();
-    // 台面
-    const g = ctx.createRadialGradient(cx, cy - ry * 0.3, rx * 0.1, cx, cy, rx);
-    g.addColorStop(0, '#ffffff');
-    g.addColorStop(1, '#cfdade');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle = 'rgba(29,28,34,0.18)';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.ellipse(cx, cy, rx * 0.72, ry * 0.72, 0, 0, Math.PI * 2); ctx.stroke();
+    // 台座畫一次存起來（手機車庫每一格都在轉車子，台座不用每格重畫）
+    const key = `${canvas.width}x${canvas.height}`;
+    let pc = platformCache.get(key);
+    if (!pc) {
+      pc = document.createElement('canvas');
+      pc.width = canvas.width; pc.height = canvas.height;
+      const p = pc.getContext('2d');
+      p.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawPlatform(p, cx, cy, rx, ry, band);
+      if (platformCache.size > 24) platformCache.clear();
+      platformCache.set(key, pc);
+    }
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(pc, 0, 0);
+    ctx.restore();
   }
   const sz = CAR_SIZE[shape] || CAR_SIZE.coupe;
   const k = (rx * 1.25) / Math.max(sz.l, 30);
