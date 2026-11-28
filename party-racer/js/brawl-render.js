@@ -3,7 +3,7 @@
 import { ARENA_W, ARENA_H, BRAWL, POWERS } from './brawl.js';
 import { avatarImage } from './avatar.js';
 
-const INK = '#17244a';
+const INK = '#0d2a36';
 
 function rrect(ctx, x, y, w, h, r) {
   ctx.beginPath();
@@ -20,35 +20,64 @@ function seeded(seed) {
 
 // ── 地面 ─────────────────────────────────────────────
 
+// 油畫筆觸（地面質感）
+function strokes(ctx, rand, n, colors, len, width, alpha) {
+  ctx.lineCap = 'round';
+  for (let i = 0; i < n; i++) {
+    const x = rand() * ARENA_W, y = rand() * ARENA_H, a = -0.8 + (rand() - 0.5) * 0.8, l = len[0] + rand() * (len[1] - len[0]);
+    ctx.strokeStyle = colors[Math.floor(rand() * colors.length)];
+    ctx.globalAlpha = alpha[0] + rand() * (alpha[1] - alpha[0]);
+    ctx.lineWidth = width[0] + rand() * (width[1] - width[0]);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function glowPatches(ctx, rand, n, rgb, rMin, rMax, alpha) {
+  for (let i = 0; i < n; i++) {
+    const x = rand() * ARENA_W, y = rand() * ARENA_H, r = rMin + rand() * (rMax - rMin);
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(${rgb},${alpha})`);
+    g.addColorStop(1, `rgba(${rgb},0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
 function floorRooftop(ctx) {
-  ctx.fillStyle = '#c9d6dc';
+  ctx.fillStyle = '#5c9f97';
   ctx.fillRect(0, 0, ARENA_W, ARENA_H);
-  ctx.fillStyle = '#d4e0e5';
+  ctx.fillStyle = '#67aaa1';
   for (let y = 0; y < ARENA_H; y += 80) for (let x = ((y / 80) % 2) * 80; x < ARENA_W; x += 160) ctx.fillRect(x, y, 80, 80);
-  ctx.strokeStyle = 'rgba(120,140,150,0.35)';
+  const rand = seeded(9);
+  strokes(ctx, rand, 1500, ['#4f938b', '#74b7ad', '#3f8580', '#86c4b8'], [12, 30], [5, 10], [0.25, 0.45]);
+  glowPatches(ctx, rand, 14, '207,228,85', 90, 180, 0.22);
+  ctx.strokeStyle = 'rgba(13,42,54,0.28)';
   ctx.lineWidth = 2;
   ctx.beginPath();
   for (let x = 0; x <= ARENA_W; x += 80) { ctx.moveTo(x, 0); ctx.lineTo(x, ARENA_H); }
   for (let y = 0; y <= ARENA_H; y += 80) { ctx.moveTo(0, y); ctx.lineTo(ARENA_W, y); }
   ctx.stroke();
-  // 地上的白色場地線
-  ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+  // 地上的場地線
+  ctx.strokeStyle = 'rgba(230,250,235,0.7)';
   ctx.lineWidth = 6;
   ctx.beginPath(); ctx.arc(ARENA_W / 2, ARENA_H / 2, 150, 0, Math.PI * 2); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(ARENA_W / 2, 30); ctx.lineTo(ARENA_W / 2, 300); ctx.moveTo(ARENA_W / 2, 600); ctx.lineTo(ARENA_W / 2, ARENA_H - 30); ctx.stroke();
 }
 
 function floorShrine(ctx) {
-  ctx.fillStyle = '#eee4cf';
+  ctx.fillStyle = '#c4dbbd';
   ctx.fillRect(0, 0, ARENA_W, ARENA_H);
   const rand = seeded(42);
-  for (let k = 0; k < 2600; k++) {
-    ctx.fillStyle = k % 3 ? 'rgba(160,140,110,0.35)' : 'rgba(255,255,255,0.6)';
+  strokes(ctx, rand, 1300, ['#a9c9a6', '#d6e8cf', '#8fbf95', '#b8d6b0'], [10, 24], [4, 9], [0.3, 0.55]);
+  glowPatches(ctx, rand, 12, '207,228,85', 80, 160, 0.25);
+  for (let k = 0; k < 2200; k++) {
+    ctx.fillStyle = k % 3 ? 'rgba(70,110,90,0.3)' : 'rgba(255,255,240,0.55)';
     ctx.fillRect(rand() * ARENA_W, rand() * ARENA_H, 3, 3);
   }
   // 石板參道：中間一條直的、一條橫的
   const slab = (x, y, w, h) => {
-    ctx.fillStyle = '#cfc6b4'; ctx.strokeStyle = 'rgba(23,36,74,0.35)'; ctx.lineWidth = 2;
+    ctx.fillStyle = '#b4c9bb'; ctx.strokeStyle = 'rgba(13,42,54,0.35)'; ctx.lineWidth = 2;
     rrect(ctx, x, y, w, h, 4); ctx.fill(); ctx.stroke();
   };
   for (let y = 170; y < ARENA_H - 160; y += 52) { slab(ARENA_W / 2 - 46, y, 44, 44); slab(ARENA_W / 2 + 2, y, 44, 44); }
@@ -61,17 +90,17 @@ function floorShrine(ctx) {
 function fence(ctx, theme) {
   const t = 14;
   if (theme === 'shrine') {
-    ctx.fillStyle = '#e8483c';
+    ctx.fillStyle = '#d0583a';
     ctx.fillRect(0, 0, ARENA_W, t); ctx.fillRect(0, ARENA_H - t, ARENA_W, t);
     ctx.fillRect(0, 0, t, ARENA_H); ctx.fillRect(ARENA_W - t, 0, t, ARENA_H);
-    ctx.fillStyle = '#2b2b33';
+    ctx.fillStyle = '#1d2a30';
     for (let x = 0; x < ARENA_W; x += 60) { ctx.fillRect(x, 0, 8, t); ctx.fillRect(x, ARENA_H - t, 8, t); }
     for (let y = 0; y < ARENA_H; y += 60) { ctx.fillRect(0, y, t, 8); ctx.fillRect(ARENA_W - t, y, t, 8); }
   } else {
-    ctx.fillStyle = '#3b8f5c';
+    ctx.fillStyle = '#1d6f6a';
     ctx.fillRect(0, 0, ARENA_W, t); ctx.fillRect(0, ARENA_H - t, ARENA_W, t);
     ctx.fillRect(0, 0, t, ARENA_H); ctx.fillRect(ARENA_W - t, 0, t, ARENA_H);
-    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+    ctx.strokeStyle = 'rgba(200,245,230,0.45)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     for (let x = 0; x < ARENA_W; x += 16) { ctx.moveTo(x, 0); ctx.lineTo(x + 14, t); ctx.moveTo(x, ARENA_H - t); ctx.lineTo(x + 14, ARENA_H); }
@@ -86,7 +115,7 @@ function fence(ctx, theme) {
 // ── 障礙物（俯視，前側畫一條深色當作高度） ────────────
 
 function block(ctx, o, top, side, h = 14) {
-  ctx.fillStyle = 'rgba(20,30,60,0.22)';
+  ctx.fillStyle = 'rgba(5,30,40,0.22)';
   rrect(ctx, o.x + 8, o.y + 10, o.w, o.h, 6); ctx.fill();
   ctx.fillStyle = side;
   ctx.strokeStyle = INK; ctx.lineWidth = 3;
@@ -98,22 +127,22 @@ function block(ctx, o, top, side, h = 14) {
 function drawObstacle(ctx, o) {
   switch (o.kind) {
     case 'stairs': {
-      block(ctx, o, '#f1e6cf', '#c9b48e', 22);
-      ctx.fillStyle = '#8a5a3b'; ctx.strokeStyle = INK; ctx.lineWidth = 2;
+      block(ctx, o, '#e9f1df', '#9fbfb0', 22);
+      ctx.fillStyle = '#a8502a'; ctx.strokeStyle = INK; ctx.lineWidth = 2;
       const dx = o.flip ? o.x + 18 : o.x + o.w - 52;
       ctx.fillRect(dx, o.y + o.h - 22, 34, 22); ctx.strokeRect(dx, o.y + o.h - 22, 34, 22);
-      ctx.fillStyle = '#ffd23f'; ctx.beginPath(); ctx.arc(dx + 28, o.y + o.h - 11, 2.5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#9fb6c4'; ctx.fillRect(o.x + 16, o.y + 16, 30, 22); ctx.strokeRect(o.x + 16, o.y + 16, 30, 22);
+      ctx.fillStyle = '#cfe455'; ctx.beginPath(); ctx.arc(dx + 28, o.y + o.h - 11, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#7fc8d6'; ctx.fillRect(o.x + 16, o.y + 16, 30, 22); ctx.strokeRect(o.x + 16, o.y + 16, 30, 22);
       break;
     }
     case 'tank': {
-      ctx.fillStyle = 'rgba(20,30,60,0.22)'; ctx.beginPath(); ctx.arc(o.x + 8, o.y + 10, o.r, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#8fc9e8'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
+      ctx.fillStyle = 'rgba(5,30,40,0.22)'; ctx.beginPath(); ctx.arc(o.x + 8, o.y + 10, o.r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#4fc3b5'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.strokeStyle = 'rgba(23,36,74,0.35)'; ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(13,42,54,0.35)'; ctx.lineWidth = 2;
       for (const k of [0.75, 0.5]) { ctx.beginPath(); ctx.arc(o.x, o.y, o.r * k, 0, Math.PI * 2); ctx.stroke(); }
-      ctx.fillStyle = '#e8f6ff'; ctx.beginPath(); ctx.arc(o.x - o.r * 0.3, o.y - o.r * 0.3, o.r * 0.18, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = INK; ctx.lineWidth = 2;
+      ctx.fillStyle = '#e6fff7'; ctx.beginPath(); ctx.arc(o.x - o.r * 0.3, o.y - o.r * 0.3, o.r * 0.18, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#cfe455'; ctx.strokeStyle = INK; ctx.lineWidth = 2;
       ctx.fillRect(o.x - 8, o.y - 8, 16, 16); ctx.strokeRect(o.x - 8, o.y - 8, 16, 16);
       break;
     }
@@ -123,10 +152,10 @@ function drawObstacle(ctx, o) {
       for (let x = o.x + 20; x < o.x + o.w - 4; x += 24) { ctx.beginPath(); ctx.moveTo(x, o.y + 3); ctx.lineTo(x, o.y + o.h - 11); ctx.stroke(); }
       break;
     case 'wall':
-      block(ctx, o, '#e3e8ec', '#9aa6b0', 12);
+      block(ctx, o, '#dcebe4', '#88aaa0', 12);
       break;
     case 'vent':
-      block(ctx, o, '#d7dde3', '#8d98a3', 12);
+      block(ctx, o, '#cfe0da', '#7f9e98', 12);
       ctx.strokeStyle = INK; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(o.x + o.w / 2, o.y + (o.h - 12) / 2 + 1, o.w * 0.3, 0, Math.PI * 2); ctx.stroke();
       ctx.beginPath();
@@ -138,10 +167,10 @@ function drawObstacle(ctx, o) {
       ctx.stroke();
       break;
     case 'plant': {
-      ctx.fillStyle = 'rgba(20,30,60,0.22)'; ctx.beginPath(); ctx.arc(o.x + 6, o.y + 8, o.r, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#d8794a'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
+      ctx.fillStyle = 'rgba(5,30,40,0.22)'; ctx.beginPath(); ctx.arc(o.x + 6, o.y + 8, o.r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#d07a3a'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#3fae5a';
+      ctx.fillStyle = '#8cbf35';
       for (let k = 0; k < 6; k++) {
         const a = (k / 6) * Math.PI * 2;
         ctx.beginPath(); ctx.ellipse(o.x + Math.cos(a) * o.r * 0.4, o.y + Math.sin(a) * o.r * 0.4, o.r * 0.42, o.r * 0.22, a, 0, Math.PI * 2);
@@ -150,7 +179,7 @@ function drawObstacle(ctx, o) {
       break;
     }
     case 'box':
-      block(ctx, o, '#e0a55a', '#a36a2c', 14);
+      block(ctx, o, '#e09a4a', '#a8602c', 14);
       ctx.strokeStyle = 'rgba(90,50,10,0.6)'; ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.moveTo(o.x + 8, o.y + 8); ctx.lineTo(o.x + o.w - 8, o.y + o.h - 20);
@@ -159,10 +188,10 @@ function drawObstacle(ctx, o) {
       break;
     case 'shrine': {
       // 屋頂（俯視）＋朱紅柱子
-      ctx.fillStyle = 'rgba(20,30,60,0.25)'; rrect(ctx, o.x + 10, o.y + 12, o.w, o.h, 8); ctx.fill();
-      ctx.fillStyle = '#d9473a'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
+      ctx.fillStyle = 'rgba(5,30,40,0.25)'; rrect(ctx, o.x + 10, o.y + 12, o.w, o.h, 8); ctx.fill();
+      ctx.fillStyle = '#c9533a'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
       rrect(ctx, o.x, o.y, o.w, o.h, 8); ctx.fill(); ctx.stroke();
-      const roof = o.flip ? '#6b4a8a' : '#3f5b6b';
+      const roof = o.flip ? '#2b5a8e' : '#2a7f7a';   // 銅綠色屋頂
       ctx.fillStyle = roof;
       ctx.beginPath();
       ctx.moveTo(o.x - 10, o.y + 8); ctx.lineTo(o.x + o.w + 10, o.y + 8); ctx.lineTo(o.x + o.w - 20, o.y + o.h / 2);
@@ -170,9 +199,9 @@ function drawObstacle(ctx, o) {
       ctx.fill(); ctx.stroke();
       ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 2;
       for (let x = o.x + 20; x < o.x + o.w - 10; x += 16) { ctx.beginPath(); ctx.moveTo(x, o.y + 12); ctx.lineTo(x, o.y + o.h - 12); ctx.stroke(); }
-      ctx.strokeStyle = '#ffd23f'; ctx.lineWidth = 6;
+      ctx.strokeStyle = '#e6c34a'; ctx.lineWidth = 6;
       ctx.beginPath(); ctx.moveTo(o.x + 20, o.y + o.h / 2); ctx.lineTo(o.x + o.w - 20, o.y + o.h / 2); ctx.stroke();
-      ctx.fillStyle = '#ffd23f'; ctx.strokeStyle = INK; ctx.lineWidth = 2;
+      ctx.fillStyle = '#e6c34a'; ctx.strokeStyle = INK; ctx.lineWidth = 2;
       for (const x of [o.x + 20, o.x + o.w - 20]) { ctx.beginPath(); ctx.arc(x, o.y + o.h / 2, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
       break;
     }
@@ -188,27 +217,27 @@ function drawObstacle(ctx, o) {
       break;
     }
     case 'lantern': {
-      block(ctx, o, '#cfcabd', '#8f8a7e', 10);
-      ctx.fillStyle = '#ffd96b'; ctx.strokeStyle = INK; ctx.lineWidth = 2;
+      block(ctx, o, '#c9cfc3', '#8a948a', 10);
+      ctx.fillStyle = '#f6e27a'; ctx.strokeStyle = INK; ctx.lineWidth = 2;
       ctx.fillRect(o.x + o.w / 2 - 6, o.y + (o.h - 10) / 2 - 5, 12, 10); ctx.strokeRect(o.x + o.w / 2 - 6, o.y + (o.h - 10) / 2 - 5, 12, 10);
       break;
     }
     case 'torii':
-      ctx.fillStyle = 'rgba(20,30,60,0.22)'; ctx.beginPath(); ctx.arc(o.x + 5, o.y + 6, o.r, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#e8483c'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
+      ctx.fillStyle = 'rgba(5,30,40,0.22)'; ctx.beginPath(); ctx.arc(o.x + 5, o.y + 6, o.r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#d0583a'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       break;
     case 'pond': {
-      ctx.fillStyle = '#9fd8a0'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
+      ctx.fillStyle = '#8cbf8a'; ctx.strokeStyle = INK; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(o.x, o.y, o.r + 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#4cc3f0';
+      ctx.fillStyle = '#2fb3a3';
       ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#5bbf6a'; ctx.lineWidth = 1.5;
+      ctx.fillStyle = '#8cbf35'; ctx.lineWidth = 1.5;
       for (const [dx, dy] of [[-0.45, -0.3], [0.35, 0.4], [0.5, -0.35]]) {
         ctx.beginPath(); ctx.moveTo(o.x + dx * o.r, o.y + dy * o.r);
         ctx.arc(o.x + dx * o.r, o.y + dy * o.r, 11, 0.4, Math.PI * 2 - 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
       }
-      ctx.fillStyle = '#ff8c3a';
+      ctx.fillStyle = '#e08a3a';
       for (const [dx, dy, a] of [[-0.1, 0.25, 0.4], [0.15, -0.2, 2.6]]) {
         ctx.beginPath(); ctx.ellipse(o.x + dx * o.r, o.y + dy * o.r, 9, 4.5, a, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       }
@@ -240,11 +269,11 @@ function drawToriiBeams(ctx, arena) {
     ctx.globalAlpha = 0.9;
     ctx.strokeStyle = INK; ctx.lineWidth = 3;
     if (maxY - minY > maxX - minX) {
-      ctx.fillStyle = '#2b2b33'; rrect(ctx, minX - 13, minY - 30, 26, maxY - minY + 60, 6); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#e8483c'; rrect(ctx, minX - 7, minY - 22, 14, maxY - minY + 44, 4); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#1d2a30'; rrect(ctx, minX - 13, minY - 30, 26, maxY - minY + 60, 6); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#d0583a'; rrect(ctx, minX - 7, minY - 22, 14, maxY - minY + 44, 4); ctx.fill(); ctx.stroke();
     } else {
-      ctx.fillStyle = '#2b2b33'; rrect(ctx, minX - 30, minY - 13, maxX - minX + 60, 26, 6); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#e8483c'; rrect(ctx, minX - 22, minY - 7, maxX - minX + 44, 14, 4); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#1d2a30'; rrect(ctx, minX - 30, minY - 13, maxX - minX + 60, 26, 6); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#d0583a'; rrect(ctx, minX - 22, minY - 7, maxX - minX + 44, 14, 4); ctx.fill(); ctx.stroke();
     }
     ctx.globalAlpha = 1;
   }
@@ -299,12 +328,12 @@ function drawGun(ctx, p) {
   ctx.strokeStyle = INK; ctx.lineWidth = 2;
   const len = w === 'sniper' ? 40 : w === 'shotgun' ? 28 : 26;
   const thick = w === 'shotgun' ? 11 : 8;
-  ctx.fillStyle = '#3d4466';
+  ctx.fillStyle = '#24485a';
   rrect(ctx, 6, -thick / 2, len, thick, 3); ctx.fill(); ctx.stroke();
   // 彩漆罐（玩家顏色）
   ctx.fillStyle = p.color;
   ctx.beginPath(); ctx.arc(14, -thick / 2 - 4, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  if (w === 'sniper') { ctx.fillStyle = '#9fb0cf'; rrect(ctx, 16, thick / 2 - 1, 14, 5, 2); ctx.fill(); ctx.stroke(); }
+  if (w === 'sniper') { ctx.fillStyle = '#7fc8c0'; rrect(ctx, 16, thick / 2 - 1, 14, 5, 2); ctx.fill(); ctx.stroke(); }
   ctx.fillStyle = p.color;
   ctx.fillRect(6 + len - 4, -thick / 2 + 1, 4, thick - 2);
   ctx.restore();
@@ -346,11 +375,11 @@ export function drawFighter(ctx, p, time, { hitFlash = 0 } = {}) {
     ctx.globalAlpha = 1;
   }
   if (protectedNow) {
-    ctx.strokeStyle = 'rgba(62,201,255,0.9)'; ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(127,240,230,0.9)'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.ellipse(p.x, p.y - 22, W * 0.55, H * 0.5, 0, 0, Math.PI * 2); ctx.stroke();
   }
   if (p.shield > 0) {
-    ctx.strokeStyle = 'rgba(62,201,255,0.75)'; ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(127,240,230,0.75)'; ctx.lineWidth = 4;
     ctx.setLineDash([8, 6]);
     ctx.beginPath(); ctx.arc(p.x, p.y - 18, 34, 0, Math.PI * 2); ctx.stroke();
     ctx.setLineDash([]);
@@ -364,10 +393,10 @@ export function drawFighterTag(ctx, p, rank) {
   ctx.fillStyle = INK;
   rrect(ctx, p.x - bw / 2 - 2, y - 2, bw + 4, 10, 4); ctx.fill();
   const hp = Math.max(0, p.hp) / BRAWL.hp;
-  ctx.fillStyle = hp > 0.6 ? '#2fcf72' : hp > 0.3 ? '#ffd23f' : '#ff4f5e';
+  ctx.fillStyle = hp > 0.6 ? '#8cd46a' : hp > 0.3 ? '#f2c14e' : '#e0583c';
   rrect(ctx, p.x - bw / 2, y, bw * hp, 6, 3); ctx.fill();
   if (p.shield > 0) {
-    ctx.fillStyle = '#3ec9ff';
+    ctx.fillStyle = '#7ff0ff';
     rrect(ctx, p.x - bw / 2, y, bw * Math.min(1, p.shield / 50), 3, 2); ctx.fill();
   }
   ctx.font = '900 13px system-ui, "PingFang TC", "Noto Sans TC", sans-serif';
@@ -403,7 +432,7 @@ export function drawPower(ctx, pw, time) {
   const bob = Math.sin(time * 4 + pw.id) * 4;
   const x = pw.x, y = pw.y + bob;
   const def = POWERS[pw.kind];
-  ctx.fillStyle = 'rgba(20,30,60,0.2)';
+  ctx.fillStyle = 'rgba(5,30,40,0.2)';
   ctx.beginPath(); ctx.ellipse(pw.x, pw.y + 18, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = def.color;
   ctx.strokeStyle = INK; ctx.lineWidth = 3;

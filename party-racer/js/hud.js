@@ -60,7 +60,7 @@ export function startConfetti() {
   cv.width = cv.clientWidth * dpr;
   cv.height = cv.clientHeight * dpr;
   const g = cv.getContext('2d');
-  const colors = ['#ffd23f', '#ff4f5e', '#2fcf72', '#ffffff', '#8f5bff', '#ff9a1f'];
+  const colors = ['#cfe455', '#4fc3b5', '#e08a3a', '#f3fbf6', '#7fe0cf', '#2a8fb0', '#f2d44a'];
   const bits = Array.from({ length: 140 }, () => ({
     x: Math.random() * cv.width, y: -Math.random() * cv.height * 0.8,
     vx: (Math.random() - 0.5) * 60 * dpr, vy: (80 + Math.random() * 120) * dpr,

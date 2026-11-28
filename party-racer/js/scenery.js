@@ -3,29 +3,29 @@
 
 import { WORLD } from './config.js';
 
-const INK = '#17244a';
+const INK = '#0d2a36';
 
 // ── 主題設定 ─────────────────────────────────────────
 // wall：護欄的顏色（多個顏色會輪流出現）  runoff：柏油外的緩衝區
 // curb：路緣石兩色  asphalt：路面  edge：路面白邊  center：中線虛線  letterbox：畫面外圍底色
 const THEMES = {
   meadow: {
-    label: '草原',
-    wall: ['#ff4f5e', '#ffffff'], runoff: '#f4d98f', curb: ['#ff4f5e', '#ffffff'],
-    asphalt: '#5a6278', edge: 'rgba(255,255,255,0.85)', center: 'rgba(255,210,63,0.75)',
-    letterbox: '#3f9b4a',
+    label: '森林',
+    wall: ['#c9662f', '#f2ead0'], runoff: '#cfe8d2', curb: ['#2fb3a3', '#f2f6d8'],
+    asphalt: '#2b4652', edge: 'rgba(225,245,235,0.85)', center: 'rgba(207,228,85,0.85)',
+    letterbox: '#1d5f55',
   },
   park: {
-    label: '遊樂園',
-    wall: ['#ff6fb5', '#ffd23f', '#3ec9ff'], runoff: '#c9f2e4', curb: ['#a259ff', '#ffffff'],
-    asphalt: '#5b5f86', edge: 'rgba(255,255,255,0.9)', center: 'rgba(255,255,255,0.6)',
-    letterbox: '#f3bcd6',
+    label: '夜之樂園',
+    wall: ['#2fb3a3', '#cfe455', '#e08a3a'], runoff: '#4f9e98', curb: ['#cfe455', '#1d3550'],
+    asphalt: '#30406a', edge: 'rgba(200,255,240,0.85)', center: 'rgba(207,228,85,0.7)',
+    letterbox: '#0f2b40',
   },
   desert: {
     label: '沙漠',
-    wall: ['#a8703a', '#e2b26c'], runoff: '#f9e3b3', curb: ['#2f6f9f', '#f2c14e'],
-    asphalt: '#6e625a', edge: 'rgba(255,240,205,0.85)', center: 'rgba(242,193,78,0.85)',
-    letterbox: '#d9ad62',
+    wall: ['#a8502a', '#e0a85a'], runoff: '#f5dfb0', curb: ['#1f8f86', '#f2c14e'],
+    asphalt: '#3d4f56', edge: 'rgba(255,240,205,0.85)', center: 'rgba(242,193,78,0.85)',
+    letterbox: '#b98a4a',
   },
 };
 
@@ -171,19 +171,20 @@ function decorFor(track) {
     big = placeBig(track, rand, [
       { kind: 'ferris', r: 100, min: 60 },
       { kind: 'carousel', r: 62, min: 40 },
-      { kind: 'tent', r: 48, min: 30, c: ['#ff4f5e', '#ffffff'] },
-      { kind: 'tent', r: 42, min: 28, c: ['#2f8cff', '#ffffff'] },
-      { kind: 'tent', r: 36, min: 26, c: ['#2fcf72', '#ffd23f'] },
+      { kind: 'tent', r: 48, min: 30, c: ['#e08a3a', '#f4ecd0'] },
+      { kind: 'tent', r: 42, min: 28, c: ['#2fb3a3', '#f4ecd0'] },
+      { kind: 'tent', r: 36, min: 26, c: ['#cfe455', '#1d5f86'] },
     ]);
     const avoid = [...big, ...corners];
-    const stands = scatter(track, rand, 7, 15, avoid).map((s) => ({ ...s, kind: 'stand', c: pick(rand, ['#ff4f5e', '#2f8cff', '#a259ff', '#ff9a1f']) }));
+    const stands = scatter(track, rand, 7, 15, avoid).map((s) => ({ ...s, kind: 'stand', c: pick(rand, ['#e08a3a', '#2fb3a3', '#3b6fb0', '#8cbf35']) }));
     const trees = scatter(track, rand, 34, 15, [...avoid, ...stands]).map((s) => ({ ...s, kind: 'lolly', c: pick(rand, ['pink', 'purple', 'mint']) }));
     small = [...stands, ...trees];
     for (const c of corners) c.kind = 'balloons';
-    const dc = ['#ff6fb5', '#ffd23f', '#3ec9ff', '#a259ff', '#2fcf72'];
-    for (let k = 0; k < 600 && dots.length < 170; k++) {
+    // 夜空般漂浮的光球
+    const dc = ['#7fe0cf', '#cfe455', '#ffd27a', '#9ff6ff', '#a8ecd9'];
+    for (let k = 0; k < 600 && dots.length < 90; k++) {
       const x = rand() * WORLD.w, y = rand() * WORLD.h;
-      if (farFromTrack(track, x, y, track.half + track.runoff + 16)) dots.push({ x, y, c: dc[k % dc.length], r: 2.4 });
+      if (farFromTrack(track, x, y, track.half + track.runoff + 16)) dots.push({ x, y, c: dc[k % dc.length], r: 2 + rand() * 3.5, glow: true });
     }
   } else if (theme === 'desert') {
     big = placeBig(track, rand, [
@@ -203,10 +204,11 @@ function decorFor(track) {
     const trees = scatter(track, rand, 60, 20, corners).map((s) => ({ ...s, kind: 'tree' }));
     small = trees;
     for (const c of corners) c.kind = 'tires';
-    const fc = ['#ffffff', '#ffd23f', '#ff7eb6', '#ffffff', '#7fd3ff'];
-    for (let k = 0; k < 600 && dots.length < 140; k++) {
+    // 林間的螢火
+    const fc = ['#e8f08a', '#cfe455', '#a8ecd9'];
+    for (let k = 0; k < 600 && dots.length < 70; k++) {
       const x = rand() * WORLD.w, y = rand() * WORLD.h;
-      if (farFromTrack(track, x, y, track.half + track.runoff + 16)) dots.push({ x, y, c: fc[k % fc.length], r: 2.6 });
+      if (farFromTrack(track, x, y, track.half + track.runoff + 16)) dots.push({ x, y, c: fc[k % fc.length], r: 1.6 + rand() * 2.4, glow: true });
     }
   }
   // 由上往下畫，前面的東西蓋住後面的
@@ -218,36 +220,88 @@ function decorFor(track) {
 
 // ── 地面 ─────────────────────────────────────────────
 
-function groundMeadow(ctx) {
-  ctx.fillStyle = '#5ccb58';
-  ctx.fillRect(0, 0, WORLD.w, WORLD.h);
-  ctx.fillStyle = '#69d664';
-  const cell = 100;
-  for (let y = 0; y < WORLD.h; y += cell) {
-    for (let x = ((y / cell) % 2) * cell; x < WORLD.w; x += cell * 2) ctx.fillRect(x, y, cell, cell);
+// 油畫筆觸：許多短而厚的筆刷，方向大致一致（像調色刀抹出來的）
+function brushStrokes(ctx, rand, n, colors, { len = [14, 34], width = [6, 12], angle = -0.9, spread = 0.8, alpha = [0.35, 0.6] } = {}) {
+  ctx.lineCap = 'round';
+  for (let i = 0; i < n; i++) {
+    const x = rand() * WORLD.w, y = rand() * WORLD.h;
+    const a = angle + (rand() - 0.5) * spread;
+    const l = len[0] + rand() * (len[1] - len[0]);
+    ctx.strokeStyle = colors[Math.floor(rand() * colors.length)];
+    ctx.globalAlpha = alpha[0] + rand() * (alpha[1] - alpha[0]);
+    ctx.lineWidth = width[0] + rand() * (width[1] - width[0]);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x + Math.cos(a) * l * 0.5 + (rand() - 0.5) * 6, y + Math.sin(a) * l * 0.5 + (rand() - 0.5) * 6, x + Math.cos(a) * l, y + Math.sin(a) * l);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function softBlobs(ctx, rand, n, color, rMin, rMax, alpha) {
+  for (let i = 0; i < n; i++) {
+    const x = rand() * WORLD.w, y = rand() * WORLD.h, r = rMin + rand() * (rMax - rMin);
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, color.replace('A', alpha));
+    g.addColorStop(1, color.replace('A', 0));
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
   }
 }
 
-function groundPark(ctx) {
-  // 粉色與奶油色的廣場地磚
-  ctx.fillStyle = '#ffe3ef';
+// 森林地面：青綠色的厚筆觸、樹冠的陰影、灑下來的黃綠光斑、幾片赭色落葉
+function groundMeadow(ctx) {
+  const rand = seeded(1128);
+  ctx.fillStyle = '#27786a';
   ctx.fillRect(0, 0, WORLD.w, WORLD.h);
-  ctx.fillStyle = '#fff3dc';
+  softBlobs(ctx, rand, 40, 'rgba(18,70,72,A)', 110, 230, 0.55);
+  softBlobs(ctx, rand, 26, 'rgba(190,225,90,A)', 70, 150, 0.32);
+  brushStrokes(ctx, rand, 2600, ['#2f8f78', '#3a9d86', '#246f62', '#4fb79a', '#1f6457', '#5fc2a2']);
+  brushStrokes(ctx, rand, 520, ['#cfe455', '#e8f08a', '#b4d43c'], { len: [6, 14], width: [3, 5], alpha: [0.3, 0.55] });
+  for (let i = 0; i < 110; i++) {
+    const x = rand() * WORLD.w, y = rand() * WORLD.h;
+    ctx.fillStyle = rand() < 0.6 ? 'rgba(217,139,58,0.6)' : 'rgba(150,70,40,0.5)';
+    ctx.beginPath(); ctx.ellipse(x, y, 4 + rand() * 3, 2 + rand() * 1.5, rand() * Math.PI, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// 夜之樂園：深藍廣場地磚＋漩渦狀的流動筆觸
+function groundPark(ctx) {
+  ctx.fillStyle = '#12304a';
+  ctx.fillRect(0, 0, WORLD.w, WORLD.h);
+  ctx.fillStyle = '#163a56';
   const cell = 60;
   for (let y = 0; y < WORLD.h; y += cell) {
     for (let x = ((y / cell) % 2) * cell; x < WORLD.w; x += cell * 2) ctx.fillRect(x, y, cell, cell);
   }
-  ctx.strokeStyle = 'rgba(214,150,180,0.35)';
+  ctx.strokeStyle = 'rgba(120,230,220,0.16)';
   ctx.lineWidth = 2;
   ctx.beginPath();
   for (let x = 0; x <= WORLD.w; x += cell) { ctx.moveTo(x, 0); ctx.lineTo(x, WORLD.h); }
   for (let y = 0; y <= WORLD.h; y += cell) { ctx.moveTo(0, y); ctx.lineTo(WORLD.w, y); }
   ctx.stroke();
+  const rand = seeded(77);
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 700; i++) {
+    let x = rand() * WORLD.w, y = rand() * WORLD.h;
+    ctx.strokeStyle = ['#2fb3a3', '#3b8fc4', '#7fe0cf', '#1f6f86'][i % 4];
+    ctx.globalAlpha = 0.12 + rand() * 0.18;
+    ctx.lineWidth = 1.5 + rand() * 3;
+    ctx.beginPath(); ctx.moveTo(x, y);
+    for (let k = 0; k < 14; k++) {
+      const a = Math.sin(x * 0.006 + y * 0.004) * 1.6 + Math.cos(y * 0.007) * 0.8;
+      x += Math.cos(a) * 7; y += Math.sin(a) * 7;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  softBlobs(ctx, rand, 14, 'rgba(120,230,210,A)', 80, 180, 0.12);
 }
 
+// 沙漠：暖色沙地＋沙丘波紋
 function groundDesert(ctx) {
-  // 沙丘波紋
-  ctx.fillStyle = '#f2cf8d';
+  ctx.fillStyle = '#e9c37e';
   ctx.fillRect(0, 0, WORLD.w, WORLD.h);
   ctx.lineCap = 'round';
   for (let y0 = 20; y0 < WORLD.h + 60; y0 += 64) {
@@ -259,13 +313,14 @@ function groundDesert(ctx) {
       }
       ctx.stroke();
     };
-    ctx.strokeStyle = 'rgba(214,160,85,0.55)';
+    ctx.strokeStyle = 'rgba(196,130,60,0.5)';
     ctx.lineWidth = 9;
     wave(0);
-    ctx.strokeStyle = 'rgba(255,236,190,0.8)';
+    ctx.strokeStyle = 'rgba(255,236,190,0.75)';
     ctx.lineWidth = 3;
     wave(-6);
   }
+  brushStrokes(ctx, seeded(5), 900, ['#f3d496', '#d9a85e', '#f6e2b0'], { len: [10, 26], width: [4, 8], angle: 0.15, spread: 0.4, alpha: [0.2, 0.4] });
 }
 
 const GROUNDS = { meadow: groundMeadow, park: groundPark, desert: groundDesert };
@@ -278,18 +333,32 @@ function shadowEllipse(ctx, x, y, rx, ry, a = 0.22) {
 }
 
 function drawTree(ctx, t, base, light) {
-  ctx.fillStyle = 'rgba(0,40,0,0.22)';
+  ctx.fillStyle = 'rgba(5,40,45,0.3)';
   ctx.beginPath(); ctx.ellipse(t.x + 6, t.y + 8, t.r, t.r * 0.8, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = base;
   ctx.strokeStyle = INK; ctx.lineWidth = 2.5;
   ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  // 陰影面
+  ctx.fillStyle = 'rgba(10,60,60,0.35)';
+  ctx.beginPath(); ctx.arc(t.x + t.r * 0.25, t.y + t.r * 0.28, t.r * 0.7, 0, Math.PI * 2); ctx.fill();
+  // 受光面（黃綠）
   ctx.fillStyle = light;
-  ctx.beginPath(); ctx.arc(t.x - t.r * 0.25, t.y - t.r * 0.28, t.r * 0.55, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  ctx.beginPath(); ctx.arc(t.x - t.r * 0.42, t.y - t.r * 0.45, t.r * 0.16, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(t.x - t.r * 0.22, t.y - t.r * 0.25, t.r * 0.58, 0, Math.PI * 2); ctx.fill();
+  // 葉片筆觸
+  ctx.lineCap = 'round';
+  ctx.lineWidth = Math.max(2, t.r * 0.16);
+  for (let k = 0; k < 5; k++) {
+    const a = k * 1.3 + t.x * 0.01;
+    const d = t.r * (0.25 + (k % 3) * 0.18);
+    const x = t.x - t.r * 0.15 + Math.cos(a) * d, y = t.y - t.r * 0.15 + Math.sin(a) * d;
+    ctx.strokeStyle = k % 2 ? 'rgba(240,248,170,0.75)' : 'rgba(20,90,80,0.45)';
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + t.r * 0.22, y - t.r * 0.12); ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(255,255,220,0.65)';
+  ctx.beginPath(); ctx.arc(t.x - t.r * 0.42, t.y - t.r * 0.45, t.r * 0.14, 0, Math.PI * 2); ctx.fill();
 }
 
-const LOLLY = { pink: ['#ff8fc8', '#ffc4e3'], purple: ['#b58cff', '#dcc8ff'], mint: ['#5ed8b5', '#aef0dc'] };
+const LOLLY = { pink: ['#2fb3a3', '#9ff0dc'], purple: ['#3b6fb0', '#9cc8ee'], mint: ['#5f9e3a', '#d8ee7a'] };
 
 function drawTires(ctx, t) {
   for (const [ox, oy] of [[-9, 0], [9, 0], [0, -11]]) {
@@ -305,7 +374,7 @@ function drawTires(ctx, t) {
 }
 
 function drawBalloons(ctx, t) {
-  const cols = ['#ff4f5e', '#ffd23f', '#3ec9ff', '#a259ff', '#2fcf72'];
+  const cols = ['#e08a3a', '#cfe455', '#4fc3b5', '#6f9be0', '#f2d44a'];
   const k0 = Math.floor((t.x + t.y) % cols.length);
   const pos = [[-10, -12], [8, -15], [0, -26]];
   ctx.strokeStyle = INK; ctx.lineWidth = 1.2;
@@ -346,7 +415,7 @@ function drawStand(ctx, s) {
     ctx.fillRect(s.x - w / 2 + (w / n) * i, s.y - h / 2, w / n + 0.5, h);
   }
   ctx.strokeRect(s.x - w / 2, s.y - h / 2, w, h);
-  ctx.fillStyle = '#ffd23f';
+  ctx.fillStyle = '#cfe455';
   ctx.beginPath(); ctx.arc(s.x + w / 2 + 5, s.y + h / 2 - 2, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
 }
 
@@ -377,7 +446,7 @@ function drawPalm(ctx, s) {
     const tx = s.x + Math.cos(a) * L, ty = s.y + Math.sin(a) * L;
     const nx = -Math.sin(a) * s.r * 0.32, ny = Math.cos(a) * s.r * 0.32;
     const mx = s.x + Math.cos(a) * L * 0.5, my = s.y + Math.sin(a) * L * 0.5;
-    ctx.fillStyle = k % 2 ? '#3aa856' : '#4cc066';
+    ctx.fillStyle = k % 2 ? '#2f9a7f' : '#58b86e';
     ctx.beginPath();
     ctx.moveTo(s.x, s.y);
     ctx.quadraticCurveTo(mx + nx, my + ny, tx, ty);
@@ -453,10 +522,10 @@ function drawObelisk(ctx, o) {
 
 function drawOasis(ctx, o) {
   const rx = o.r * 0.78, ry = o.r * 0.55;
-  ctx.fillStyle = '#86d36a';
+  ctx.fillStyle = '#7fbf5a';
   ctx.strokeStyle = INK; ctx.lineWidth = 2.5;
   ctx.beginPath(); ctx.ellipse(o.x, o.y, rx + 14, ry + 12, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#3ec9ff';
+  ctx.fillStyle = '#2fb3a3';
   ctx.beginPath(); ctx.ellipse(o.x, o.y, rx, ry, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   ctx.strokeStyle = 'rgba(255,255,255,0.75)';
   ctx.lineWidth = 3;
@@ -492,16 +561,16 @@ function drawTopTent(ctx, t, colors, wedges, scallop) {
     // 旋轉木馬屋簷的金色花邊
     for (let k = 0; k < 18; k++) {
       const a = (k / 18) * Math.PI * 2;
-      ctx.fillStyle = '#ffd23f';
+      ctx.fillStyle = '#f2d44a';
       ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.arc(t.x + Math.cos(a) * t.r, t.y + Math.sin(a) * t.r, t.r * 0.09, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     }
   }
   ctx.lineWidth = 2;
-  ctx.fillStyle = '#ffd23f';
+  ctx.fillStyle = '#f2d44a';
   ctx.beginPath(); ctx.arc(t.x, t.y, t.r * 0.13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   // 小旗子
-  ctx.fillStyle = colors[0] === '#ffffff' ? '#ff4f5e' : colors[0];
+  ctx.fillStyle = colors[0] === '#f4ecd0' ? '#e08a3a' : colors[0];
   ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(t.x + t.r * 0.32, t.y - t.r * 0.12); ctx.lineTo(t.x, t.y - t.r * 0.24); ctx.closePath();
   ctx.fill(); ctx.stroke();
 }
@@ -524,8 +593,11 @@ function drawFerris(ctx, f) {
   // 輪框
   ctx.strokeStyle = INK; ctx.lineWidth = 7;
   ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
-  ctx.strokeStyle = '#ff6fb5'; ctx.lineWidth = 3.5;
+  ctx.save();
+  ctx.shadowColor = 'rgba(127,240,255,0.9)'; ctx.shadowBlur = 14;
+  ctx.strokeStyle = '#7ff0ff'; ctx.lineWidth = 3.5;
   ctx.stroke();
+  ctx.restore();
   ctx.strokeStyle = 'rgba(23,36,74,0.55)'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.arc(cx, cy, R * 0.82, 0, Math.PI * 2); ctx.stroke();
   // 輪輻
@@ -538,7 +610,7 @@ function drawFerris(ctx, f) {
   ctx.strokeStyle = INK; ctx.lineWidth = 2;
   ctx.stroke();
   // 車廂
-  const cabin = ['#ff4f5e', '#ffd23f', '#3ec9ff', '#2fcf72', '#a259ff', '#ff9a1f', '#ff6fb5', '#2f8cff'];
+  const cabin = ['#e08a3a', '#cfe455', '#4fc3b5', '#f2d44a', '#6f9be0', '#7fe0cf', '#e0583c', '#2a8fb0'];
   const cw = R * 0.26, ch = R * 0.22;
   for (let k = 0; k < n; k++) {
     const a = (k / n) * Math.PI * 2 + Math.PI / 8;
@@ -552,17 +624,17 @@ function drawFerris(ctx, f) {
     ctx.fillRect(x - cw / 2 + 3, y - ch * 0.2 + 3, cw - 6, ch * 0.3);
   }
   // 軸心
-  ctx.fillStyle = '#ffd23f'; ctx.lineWidth = 2.5;
+  ctx.fillStyle = '#cfe455'; ctx.lineWidth = 2.5;
   ctx.beginPath(); ctx.arc(cx, cy, R * 0.12, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   // 底座
-  ctx.fillStyle = '#a259ff';
+  ctx.fillStyle = '#1d5f86';
   ctx.fillRect(cx - f.r * 0.62, footY - 5, f.r * 1.24, 10);
   ctx.strokeRect(cx - f.r * 0.62, footY - 5, f.r * 1.24, 10);
 }
 
 function drawItem(ctx, it, iconAngle = 0) {
   switch (it.kind) {
-    case 'tree': drawTree(ctx, it, '#2fae4e', '#55cf6a'); break;
+    case 'tree': drawTree(ctx, it, '#2f9a7f', '#c8e45a'); break;
     case 'lolly': drawTree(ctx, it, LOLLY[it.c][0], LOLLY[it.c][1]); break;
     case 'tires': drawTires(ctx, it); break;
     case 'balloons': drawBalloons(ctx, it); break;
@@ -573,7 +645,7 @@ function drawItem(ctx, it, iconAngle = 0) {
     case 'pyramid': drawPyramid(ctx, it); break;
     case 'obelisk': drawObelisk(ctx, it); break;
     case 'oasis': drawOasis(ctx, it); break;
-    case 'carousel': drawTopTent(ctx, it, ['#ff6fb5', '#fff3b0'], 12, true); break;
+    case 'carousel': drawTopTent(ctx, it, ['#2fb3a3', '#f6f3c8'], 12, true); break;
     case 'tent': drawTopTent(ctx, it, it.c, 8, false); break;
     case 'ferris':
       // 正面圖示：畫面轉 90 度（直立手機當主機）時把它轉回來，才不會躺著
@@ -598,8 +670,17 @@ export function drawTrackScene(ctx, track, { detail = true, iconAngle = 0 } = {}
 
   if (detail) {
     for (const d of deco.dots) {
-      ctx.fillStyle = d.c;
-      ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
+      if (d.glow) {
+        const g = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r * 4);
+        g.addColorStop(0, d.c);
+        g.addColorStop(0.35, d.c + '88');
+        g.addColorStop(1, d.c + '00');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(d.x, d.y, d.r * 4, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = d.c;
+        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
+      }
     }
   }
 

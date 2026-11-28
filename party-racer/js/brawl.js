@@ -43,10 +43,10 @@ export function weaponById(id) { return WEAPONS.find((w) => w.id === id) || WEAP
 
 // ── 道具 ─────────────────────────────────────────────
 export const POWERS = {
-  heal: { name: '補血', color: '#2fcf72' },
-  shield: { name: '護盾', color: '#3ec9ff' },
-  rapid: { name: '連射加速', color: '#ff9a1f' },
-  speed: { name: '加速鞋', color: '#ff6fb5' },
+  heal: { name: '補血', color: '#6fbf4a' },
+  shield: { name: '護盾', color: '#2fa8b8' },
+  rapid: { name: '連射加速', color: '#e08a3a' },
+  speed: { name: '加速鞋', color: '#8f7fd8' },
 };
 
 // ── 場地 ─────────────────────────────────────────────
