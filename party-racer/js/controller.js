@@ -936,6 +936,10 @@ function showResult() {
 
 // ── 其他 ─────────────────────────────────────────────
 
+// 手機當搖桿用，不需要縮放：iOS Safari 會無視 user-scalable=no，兩指一碰畫面就被放大、按鈕跑掉
+// （連點兩下放大由 CSS 的 touch-action: manipulation 擋掉，不影響按鈕連點）
+for (const ev of ['gesturestart', 'gesturechange']) document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
+
 function goFullscreen() {
   const el = document.documentElement;
   if (el.requestFullscreen && !document.fullscreenElement) el.requestFullscreen().catch(() => {});

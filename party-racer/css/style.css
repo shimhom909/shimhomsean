@@ -25,6 +25,9 @@
 }
 
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body.pad-page { touch-action: pan-x pan-y; }
+.pad-page button, .pad-page input, .pad-page .chara-card, .pad-page .color-dot { touch-action: manipulation; }
 html, body { margin: 0; height: 100%; }
 body {
   -webkit-tap-highlight-color: transparent;
@@ -552,7 +555,7 @@ a.icon-btn { text-decoration: none; color: inherit; }
 .setup-foot { padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); display: flex; justify-content: center; background: linear-gradient(transparent, rgba(29, 28, 34, .25)); }
 .setup-foot .btn.big { font-style: italic; font-size: 24px; --o: 2.5px; }
 
-@media (orientation: landscape) and (max-height: 520px) {
+@media (min-aspect-ratio: 3/2) and (max-height: 520px) {
   .setup { display: grid; grid-template-columns: 1.1fr 1fr; grid-template-rows: auto 1fr; gap: 22px 14px; padding-top: 6px; }
   .setup-head { grid-column: 1 / -1; }
   .showcase canvas { height: 110px; }
@@ -659,6 +662,11 @@ body.playing { overflow: hidden; position: fixed; inset: 0; touch-action: none; 
   .pad-msg { grid-area: msg; }
   .steer { gap: 8px; }
 }
+/* 很窄的直向螢幕：油門放下面整排，氮氣、煞車並排在上面，按鈕才不會太細 */
+@media (orientation: portrait) and (max-width: 340px) {
+  .pedals { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1.3fr; grid-template-areas: "nitro brake" "gas gas"; gap: 8px; }
+  .pad { gap: 8px; padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
+}
 
 /* 手機：結果 */
 .result-panel { width: min(380px, 100%); display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 26px; }
@@ -722,7 +730,7 @@ body.playing { overflow: hidden; position: fixed; inset: 0; touch-action: none; 
 .swatch.selected { transform: translateY(-3px) scale(1.08); box-shadow: 0 6px 0 var(--ink), 0 0 0 3px #fff inset; }
 .wpn-thumbs { grid-template-columns: repeat(3, 1fr); }
 .wpn-thumbs .car-card canvas { height: 30px; }
-@media (orientation: landscape) and (max-height: 520px) {
+@media (min-aspect-ratio: 3/2) and (max-height: 520px) {
   .chara-wrap { flex-direction: row; align-items: flex-start; }
   .chara-stage { flex: 0 0 38%; }
   .chara-opts { flex: 1; }
@@ -864,7 +872,7 @@ body.playing { overflow: hidden; position: fixed; inset: 0; touch-action: none; 
 
 /* 手機：選角色——上面一張大卡（立繪），下面六張 Q 版小卡 */
 .chara-stage {
-  position: sticky; top: 18px; z-index: 3; padding: 14px 8px 12px;
+  position: relative; z-index: 1; padding: 14px 8px 12px;
   display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "name name name" "prev art next" "desc desc desc";
   align-items: center; justify-items: center; row-gap: 4px;
   background: var(--parch);
@@ -873,7 +881,7 @@ body.playing { overflow: hidden; position: fixed; inset: 0; touch-action: none; 
 .chara-caption { display: contents; }
 #chara-name { grid-area: name; font-size: 28px; font-style: normal; margin-top: 4px; }
 #chara-desc { grid-area: desc; font-size: 13px; color: var(--ink-soft); text-align: center; padding: 0 6px; min-height: 2.6em; }
-.chara-art { grid-area: art; height: clamp(190px, 34vh, 300px); width: 100%; display: flex; align-items: flex-end; justify-content: center; position: relative; }
+.chara-art { grid-area: art; height: clamp(140px, 30vh, 270px); width: 100%; display: flex; align-items: flex-end; justify-content: center; position: relative; }
 .chara-art img { position: relative; height: 100%; max-width: 100%; object-fit: contain; display: block; animation: pop-in .3s; }
 .chara-arrow { width: 40px; height: 56px; z-index: 1; }
 .chara-arrow.left { grid-area: prev; }
@@ -891,11 +899,21 @@ body.playing { overflow: hidden; position: fixed; inset: 0; touch-action: none; 
   transform: translateY(-4px) rotate(-1.5deg);
   box-shadow: inset 0 0 0 2px #fff6c8, inset 0 0 0 3.5px var(--ink), 0 0 0 3px var(--yellow), 0 0 0 6px var(--ink), 0 8px 0 3px var(--ink);
 }
-@media (orientation: landscape) and (max-height: 520px) {
-  .chara-art { height: 52vh; }
+@media (min-aspect-ratio: 3/2) and (max-height: 520px) {
+  .chara-stage { position: sticky; top: 4px; padding-top: 8px; }
+  .chara-art { height: 38vh; }
+  #chara-name { font-size: 22px; }
+  #chara-desc { min-height: 0; font-size: 12px; }
   .chara-thumb { height: 64px; }
 }
-.wait-art { height: 200px; align-items: flex-end; }
+.wait-art { height: min(200px, 30vh); align-items: flex-end; }
+@media (min-aspect-ratio: 3/2) and (max-height: 520px) {
+  #c-wait { flex-direction: column; flex-wrap: wrap; align-content: center; height: 100dvh; min-height: 0; column-gap: 30px; row-gap: 8px; padding: 12px; }
+  #c-wait .wait-panel { width: min(300px, 44vw); }
+  #c-wait .wait-art { height: 42vh; }
+  #c-wait .wait-name { font-size: 22px; }
+  #c-wait .mini-players { max-width: 44vw; }
+}
 .wait-art img, .r-art img { height: 100%; width: auto; max-width: 100%; object-fit: contain; display: block; filter: drop-shadow(0 4px 0 rgba(29, 28, 34, .25)); }
 
 /* ── 比賽 HUD：羊皮紙面板、木頭排行榜、膠囊按鈕（參考使用者提供的遊戲畫面） ── */
