@@ -11,20 +11,20 @@ const INK = '#1d1c22';
 const THEMES = {
   meadow: {
     label: '海岸草原',
-    wall: ['#e8452c', '#f6efdf'], runoff: '#efe0b8', curb: ['#e8452c', '#f6efdf'],
-    asphalt: '#7d7975', edge: 'rgba(246,239,223,0.9)', center: 'rgba(246,239,223,0.9)',
-    letterbox: '#6fa850',
+    wall: ['#c8372a', '#f4efe4'], runoff: '#ebe0c4', curb: ['#c8372a', '#f4efe4'],
+    asphalt: '#5d5e63', edge: 'rgba(246,239,223,0.9)', center: 'rgba(246,239,223,0.92)',
+    letterbox: '#7f9e45',
   },
   park: {
     label: '彩繪樂園',
     wall: ['#e8452c', '#2ec4d0', '#f3c93e'], runoff: '#f6efdf', curb: ['#f07b22', '#f6efdf'],
-    asphalt: '#5f5c62', edge: 'rgba(246,239,223,0.9)', center: 'rgba(243,201,62,0.85)',
+    asphalt: '#57555c', edge: 'rgba(246,239,223,0.9)', center: 'rgba(243,201,62,0.85)',
     letterbox: '#4fb6c6',
   },
   desert: {
     label: '沙漠',
     wall: ['#c0502a', '#f0c27a'], runoff: '#f5dfb0', curb: ['#1f5fae', '#f3c93e'],
-    asphalt: '#7a6f66', edge: 'rgba(255,240,205,0.85)', center: 'rgba(243,201,62,0.85)',
+    asphalt: '#6a6058', edge: 'rgba(255,240,205,0.85)', center: 'rgba(243,201,62,0.85)',
     letterbox: '#d9ad62',
   },
 };
@@ -52,6 +52,38 @@ function tracePath(ctx, track) {
   ctx.moveTo(p[0].x, p[0].y);
   for (let i = 1; i < p.length; i++) ctx.lineTo(p[i].x, p[i].y);
   ctx.closePath();
+}
+
+// 柏油路面：碎石顆粒、磨亮的路面、彎道上的胎痕
+function asphaltTexture(ctx, track) {
+  const rand = seeded(hashStr(track.id) + 11);
+  const at = (i, d) => [track.pts[i].x + track.nx[i] * d, track.pts[i].y + track.ny[i] * d];
+  for (let k = 0; k < 2600; k++) {
+    const i = Math.floor(rand() * track.n);
+    const [x, y] = at(i, (rand() - 0.5) * (track.width - 16));
+    ctx.fillStyle = k % 3 ? 'rgba(20,20,24,0.35)' : 'rgba(255,255,255,0.18)';
+    ctx.fillRect(x, y, 2, 2);
+  }
+  ctx.lineCap = 'round';
+  // 彎道上的胎痕：兩條平行線
+  const curvy = [];
+  for (let i = 0; i < track.n; i += 4) if (Math.abs(track.curv[i]) > 0.004) curvy.push(i);
+  for (let m = 0; m < Math.min(10, curvy.length); m++) {
+    const i0 = curvy[Math.floor(rand() * curvy.length)];
+    const len = 20 + Math.floor(rand() * 30);
+    const off0 = (rand() - 0.5) * track.width * 0.5, drift = (rand() - 0.5) * track.width * 0.4;
+    ctx.strokeStyle = `rgba(20,20,24,${0.18 + rand() * 0.12})`;
+    ctx.lineWidth = 3;
+    for (const w of [-7, 7]) {
+      ctx.beginPath();
+      for (let k = 0; k <= len; k++) {
+        const i = (i0 + k) % track.n;
+        const [x, y] = at(i, off0 + drift * Math.sin((k / len) * Math.PI) + w);
+        if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    }
+  }
 }
 
 function wallDist(track) {
@@ -249,29 +281,29 @@ function softBlobs(ctx, rand, n, color, rMin, rMax, alpha) {
   }
 }
 
-// 海岸草原：黃綠色草地＋漫畫式的排線、硬邊的雲影、乾草色的亮塊
+// 海岸草原：橄欖綠草地＋深淺不一的色塊（漫畫上色）＋草的排線
 function groundMeadow(ctx) {
   const rand = seeded(1128);
-  ctx.fillStyle = '#7fb45a';
+  ctx.fillStyle = '#86a447';
   ctx.fillRect(0, 0, WORLD.w, WORLD.h);
-  softBlobs(ctx, rand, 18, 'rgba(214,214,120,A)', 90, 200, 0.45);
-  // 雲影：大塊、邊緣清楚
-  ctx.fillStyle = 'rgba(40,80,40,0.16)';
-  for (let i = 0; i < 9; i++) {
+  softBlobs(ctx, rand, 16, 'rgba(176,168,78,A)', 110, 230, 0.55);
+  // 深色的雲影：大塊、邊緣清楚
+  ctx.fillStyle = 'rgba(60,90,30,0.2)';
+  for (let i = 0; i < 10; i++) {
     const x = rand() * WORLD.w, y = rand() * WORLD.h;
     ctx.beginPath();
-    for (let k = 0; k < 4; k++) ctx.ellipse(x + (k - 1.5) * 50, y + Math.sin(k * 2) * 20, 70 + rand() * 40, 40 + rand() * 20, 0, 0, Math.PI * 2);
+    for (let k = 0; k < 4; k++) ctx.ellipse(x + (k - 1.5) * 55, y + Math.sin(k * 2) * 22, 80 + rand() * 40, 44 + rand() * 20, 0, 0, Math.PI * 2);
     ctx.fill();
   }
-  brushStrokes(ctx, rand, 1800, ['#6ea64c', '#8fc464', '#5f9442', '#a9cf72'], { len: [10, 26], width: [4, 9], angle: -1.2, spread: 0.5, alpha: [0.35, 0.6] });
-  // 漫畫排線（草）
-  ctx.strokeStyle = 'rgba(40,70,30,0.45)';
-  ctx.lineWidth = 1.6;
+  brushStrokes(ctx, rand, 1900, ['#7c9a40', '#93ad52', '#6c8a36', '#a5b45a'], { len: [10, 24], width: [4, 8], angle: -1.3, spread: 0.5, alpha: [0.35, 0.6] });
+  // 草的排線
+  ctx.strokeStyle = 'rgba(45,60,20,0.5)';
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  for (let i = 0; i < 900; i++) {
+  for (let i = 0; i < 1100; i++) {
     const x = rand() * WORLD.w, y = rand() * WORLD.h;
-    ctx.moveTo(x, y); ctx.lineTo(x + 2, y - 7 - rand() * 5);
-    ctx.moveTo(x + 4, y); ctx.lineTo(x + 7, y - 5 - rand() * 4);
+    ctx.moveTo(x, y); ctx.lineTo(x + 1.5, y - 6 - rand() * 5);
+    ctx.moveTo(x + 4, y); ctx.lineTo(x + 6.5, y - 4 - rand() * 4);
   }
   ctx.stroke();
 }
@@ -347,6 +379,22 @@ function groundDesert(ctx) {
 
 const GROUNDS = { meadow: groundMeadow, park: groundPark, desert: groundDesert };
 
+function drawDots(ctx, dots) {
+  for (const d of dots) {
+    if (d.glow) {
+      const g = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r * 4);
+      g.addColorStop(0, d.c);
+      g.addColorStop(0.35, d.c + '88');
+      g.addColorStop(1, d.c + '00');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(d.x, d.y, d.r * 4, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.fillStyle = d.c;
+      ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
 // ── 裝飾物（俯視卡通風，深藍描邊） ───────────────────
 
 function shadowEllipse(ctx, x, y, rx, ry, a = 0.22) {
@@ -355,29 +403,46 @@ function shadowEllipse(ctx, x, y, rx, ry, a = 0.22) {
 }
 
 function drawTree(ctx, t, base, light) {
-  ctx.fillStyle = 'rgba(20,40,10,0.3)';
-  ctx.beginPath(); ctx.ellipse(t.x + 6, t.y + 8, t.r, t.r * 0.8, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = base;
-  ctx.strokeStyle = INK; ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  // 陰影面
-  ctx.fillStyle = 'rgba(20,50,20,0.35)';
-  ctx.beginPath(); ctx.arc(t.x + t.r * 0.25, t.y + t.r * 0.28, t.r * 0.7, 0, Math.PI * 2); ctx.fill();
-  // 受光面（黃綠）
-  ctx.fillStyle = light;
-  ctx.beginPath(); ctx.arc(t.x - t.r * 0.22, t.y - t.r * 0.25, t.r * 0.58, 0, Math.PI * 2); ctx.fill();
-  // 葉片筆觸
-  ctx.lineCap = 'round';
-  ctx.lineWidth = Math.max(2, t.r * 0.16);
-  for (let k = 0; k < 5; k++) {
-    const a = k * 1.3 + t.x * 0.01;
-    const d = t.r * (0.25 + (k % 3) * 0.18);
-    const x = t.x - t.r * 0.15 + Math.cos(a) * d, y = t.y - t.r * 0.15 + Math.sin(a) * d;
-    ctx.strokeStyle = k % 2 ? 'rgba(255,248,200,0.8)' : 'rgba(29,28,34,0.45)';
-    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + t.r * 0.22, y - t.r * 0.12); ctx.stroke();
+  const rand = seeded(Math.round(t.x * 13 + t.y * 7));
+  const n = 7 + Math.floor(rand() * 3);
+  const lumps = [[0, 0, t.r * 0.78]];
+  for (let k = 0; k < n; k++) {
+    const a = (k / n) * Math.PI * 2 + rand() * 0.4;
+    lumps.push([Math.cos(a) * t.r * 0.62, Math.sin(a) * t.r * 0.62, t.r * (0.36 + rand() * 0.12)]);
   }
-  ctx.fillStyle = 'rgba(255,255,220,0.65)';
-  ctx.beginPath(); ctx.arc(t.x - t.r * 0.42, t.y - t.r * 0.45, t.r * 0.14, 0, Math.PI * 2); ctx.fill();
+  const each = (fn) => { for (const [dx, dy, r] of lumps) { ctx.beginPath(); ctx.arc(t.x + dx, t.y + dy, r, 0, Math.PI * 2); fn(); } };
+  // 地上的斜線影子
+  ctx.save();
+  ctx.translate(t.r * 0.28, t.r * 0.34);
+  ctx.fillStyle = 'rgba(30,45,15,0.3)';
+  each(() => ctx.fill());
+  ctx.restore();
+  // 外圈墨線（先畫粗線，再用底色蓋掉裡面）
+  ctx.strokeStyle = INK; ctx.lineWidth = Math.max(3, t.r * 0.14);
+  each(() => ctx.stroke());
+  ctx.fillStyle = base;
+  each(() => ctx.fill());
+  // 背光面（右下）
+  ctx.save();
+  ctx.beginPath();
+  for (const [dx, dy, r] of lumps) { ctx.moveTo(t.x + dx + r, t.y + dy); ctx.arc(t.x + dx, t.y + dy, r, 0, Math.PI * 2); }
+  ctx.clip();
+  ctx.fillStyle = 'rgba(20,40,15,0.32)';
+  ctx.beginPath(); ctx.arc(t.x + t.r * 0.42, t.y + t.r * 0.48, t.r * 0.9, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  // 受光的小團（左上）
+  ctx.fillStyle = light;
+  for (const [dx, dy, r] of lumps) {
+    if (dx + dy > t.r * 0.2) continue;
+    ctx.beginPath(); ctx.arc(t.x + dx - r * 0.18, t.y + dy - r * 0.2, r * 0.55, 0, Math.PI * 2); ctx.fill();
+  }
+  // 葉子的小捲線
+  ctx.strokeStyle = 'rgba(29,28,34,0.55)'; ctx.lineWidth = Math.max(1.2, t.r * 0.06); ctx.lineCap = 'round';
+  for (let k = 0; k < 4; k++) {
+    const a = rand() * Math.PI * 2, d = rand() * t.r * 0.6;
+    const x = t.x + Math.cos(a) * d, y = t.y + Math.sin(a) * d;
+    ctx.beginPath(); ctx.arc(x, y, t.r * 0.16, Math.PI * 0.1, Math.PI * 0.9); ctx.stroke();
+  }
 }
 
 const LOLLY = { pink: ['#2ec4d0', '#bff2f4'], purple: ['#e8452c', '#ffb59a'], mint: ['#5f9e3a', '#c8e47a'] };
@@ -653,7 +718,7 @@ function drawFerris(ctx, f) {
 
 function drawItem(ctx, it, iconAngle = 0) {
   switch (it.kind) {
-    case 'tree': drawTree(ctx, it, '#4f9a42', '#a9d468'); break;
+    case 'tree': drawTree(ctx, it, '#557d2e', '#86a83f'); break;
     case 'lolly': drawTree(ctx, it, LOLLY[it.c][0], LOLLY[it.c][1]); break;
     case 'tires': drawTires(ctx, it); break;
     case 'balloons': drawBalloons(ctx, it); break;
@@ -684,69 +749,85 @@ function drawItem(ctx, it, iconAngle = 0) {
 export function drawTrackScene(ctx, track, { detail = true, iconAngle = 0 } = {}) {
   const th = themeOf(track);
   const themeId = (track.def && track.def.theme) || 'meadow';
-  (GROUNDS[themeId] || groundMeadow)(ctx);
   const deco = decorFor(track);
-
-  if (detail) {
-    for (const d of deco.dots) {
-      if (d.glow) {
-        const g = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r * 4);
-        g.addColorStop(0, d.c);
-        g.addColorStop(0.35, d.c + '88');
-        g.addColorStop(1, d.c + '00');
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.arc(d.x, d.y, d.r * 4, 0, Math.PI * 2); ctx.fill();
-      } else {
-        ctx.fillStyle = d.c;
-        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
-      }
-    }
-  }
+  const paintGround = () => {
+    (GROUNDS[themeId] || groundMeadow)(ctx);
+    if (detail) drawDots(ctx, deco.dots);
+  };
+  paintGround();
 
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
-  tracePath(ctx, track);
   const outer = track.width + track.runoff * 2;
 
-  // 護欄：深色描邊 + 主題配色輪流出現
-  ctx.lineWidth = outer + 30;
+  // 紅白路緣石（墨線框起來，一格一格）
+  tracePath(ctx, track);
+  ctx.lineWidth = outer + 40;
   ctx.strokeStyle = INK;
   ctx.stroke();
-  ctx.lineWidth = outer + 22;
+  ctx.lineWidth = outer + 32;
   ctx.strokeStyle = th.wall[0];
   ctx.stroke();
-  const seg = 22, n = th.wall.length;
+  const seg = 20, n = th.wall.length;
+  ctx.lineCap = 'butt';
   for (let k = 1; k < n; k++) {
     ctx.setLineDash([seg, seg * (n - 1)]);
     ctx.lineDashOffset = -seg * k;
     ctx.strokeStyle = th.wall[k];
     ctx.stroke();
   }
-  ctx.setLineDash([]);
+  ctx.setLineDash([2, seg - 2]);
   ctx.lineDashOffset = 0;
+  ctx.strokeStyle = 'rgba(29,28,34,0.7)';
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineCap = 'round';
+  // 只有外圈有路緣石：把賽道圍起來的內側重畫一次地面蓋掉
+  ctx.save();
+  tracePath(ctx, track);
+  ctx.clip();
+  paintGround();
+  ctx.restore();
 
+  // 路肩外緣的墨線
+  tracePath(ctx, track);
+  ctx.lineWidth = outer + 8;
+  ctx.strokeStyle = INK;
+  ctx.stroke();
+
+  // 路肩
+  tracePath(ctx, track);
   ctx.lineWidth = outer;
   ctx.strokeStyle = th.runoff;
   ctx.stroke();
+  if (detail) {
+    // 路肩上的髒污
+    const rand = seeded(hashStr(track.id) + 3);
+    for (let k = 0; k < 500; k++) {
+      const i = Math.floor(rand() * track.n), sgn = rand() < 0.5 ? -1 : 1;
+      const d = sgn * (track.half + 6 + rand() * (track.runoff - 10));
+      ctx.fillStyle = k % 3 ? 'rgba(140,120,80,0.28)' : 'rgba(255,255,255,0.5)';
+      ctx.fillRect(track.pts[i].x + track.nx[i] * d, track.pts[i].y + track.ny[i] * d, 2.5, 2.5);
+    }
+  }
 
-  ctx.lineWidth = track.width + 16;
-  ctx.strokeStyle = th.curb[0];
+  // 柏油（墨線邊）
+  tracePath(ctx, track);
+  ctx.lineWidth = track.width + 6;
+  ctx.strokeStyle = INK;
   ctx.stroke();
-  ctx.setLineDash([14, 14]);
-  ctx.strokeStyle = th.curb[1];
-  ctx.stroke();
-  ctx.setLineDash([]);
-
   ctx.lineWidth = track.width;
   ctx.strokeStyle = th.asphalt;
   ctx.stroke();
   if (detail) {
-    ctx.lineWidth = track.width - 8;
+    ctx.lineWidth = track.width - 10;
     ctx.strokeStyle = th.edge;
     ctx.stroke();
-    ctx.lineWidth = track.width - 13;
+    ctx.lineWidth = track.width - 15;
     ctx.strokeStyle = th.asphalt;
     ctx.stroke();
+    asphaltTexture(ctx, track);
+    tracePath(ctx, track);
     ctx.lineWidth = 4;
     ctx.strokeStyle = th.center;
     ctx.setLineDash([24, 26]);

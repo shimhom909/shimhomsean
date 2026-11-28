@@ -6,7 +6,7 @@ const path = require('path');
 const { chromium } = require('playwright');
 
 const ROOT = path.join(__dirname, '..');
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png' };
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webp': 'image/webp' };
 
 function serve() {
   const server = http.createServer((req, res) => {
@@ -43,7 +43,7 @@ function check(cond, msg) {
     const url = await host.getAttribute('#qr', 'data-url');
 
     const phones = [];
-    for (const [name, species, eyes, weapon, color] of [['小櫻', 'rabbit', 'round', 'shotgun', '#ff70a6'], ['阿翔', 'fox', 'sharp', 'sniper', '#3a86ff']]) {
+    for (const [name, chara, weapon, color] of [['小櫻', 'rabbit', 'shotgun', '#ff70a6'], ['阿翔', 'raccoon', 'sniper', '#3a86ff']]) {
       const p = await ctx.newPage();
       watch(p, name);
       await p.setViewportSize({ width: 390, height: 844 });
@@ -51,22 +51,23 @@ function check(cond, msg) {
       await p.waitForSelector('#c-setup:not(.hidden)', { timeout: 5000 });
       await p.fill('#name-input', name);
       await p.click(`.color-dot[data-hex="${color}"]`);
-      await p.click(`.opt-row[data-key="species"] .opt[data-val="${species}"]`);
-      await p.click(`.opt-row[data-key="eyes"] .opt[data-val="${eyes}"]`);
+      await p.click(`.chara-card[data-id="${chara}"]`);
       await p.click('.tab[data-tab="gear"]');
       await p.click(`#wpn-list .car-card[data-id="${weapon}"]`);
       phones.push(p);
     }
     const [a, b] = phones;
     check((await a.textContent('#tab-gear')) === '武器庫', '手機知道是射擊遊戲，顯示「武器庫」');
-    check(await a.$eval('#chara-art svg', (el) => !!el), '角色設定畫面有立繪');
+    check(await a.$eval('#chara-art img', (el) => el.complete && el.naturalWidth > 0), '角色設定畫面有立繪');
+    check((await a.$$('.chara-card')).length === 6, '六位角色可以選');
+    check((await a.textContent('#chara-name')) === '躺平兔', '選了兔子，大卡片顯示「躺平兔」');
     await a.click('#ready-btn');
     await b.click('#ready-btn');
     await host.waitForTimeout(300);
-    const ps = await host.evaluate(() => [...window.__host.players.values()].map((p) => ({ n: p.name, w: p.weapon, s: p.avatar.species, e: p.avatar.eyes, c: p.color, r: p.ready })));
-    check(ps.some((p) => p.n === '小櫻' && p.w === 'shotgun' && p.s === 'rabbit' && p.c === '#ff70a6' && p.r), '主機收到小櫻的動物角色（兔子）、武器、顏色');
-    check(ps.some((p) => p.n === '阿翔' && p.w === 'sniper' && p.s === 'fox' && p.e === 'sharp' && p.r), '主機收到阿翔的動物角色（狐狸）、武器');
-    check((await host.$$('.slot.player-card .slot-art svg')).length === 2, '等候室顯示兩位玩家的立繪');
+    const ps = await host.evaluate(() => [...window.__host.players.values()].map((p) => ({ n: p.name, w: p.weapon, ch: p.chara, c: p.color, r: p.ready })));
+    check(ps.some((p) => p.n === '小櫻' && p.w === 'shotgun' && p.ch === 'rabbit' && p.c === '#ff70a6' && p.r), '主機收到小櫻的角色（躺平兔）、武器、顏色');
+    check(ps.some((p) => p.n === '阿翔' && p.w === 'sniper' && p.ch === 'raccoon' && p.r), '主機收到阿翔的角色（想睡浣熊）、武器');
+    check((await host.$$('.slot.player-card .slot-art img')).length === 2, '等候室顯示兩位玩家的 Q 版角色');
 
     await host.click('#bot-chips .chip[data-bots="1"]');
     await host.click('#time-chips .chip[data-min="1"]');
@@ -110,7 +111,7 @@ function check(cond, msg) {
     await host.click('#end-btn');
     await host.waitForSelector('#results:not(.hidden)', { timeout: 6000 });
     for (const p of phones) await p.waitForSelector('#c-result:not(.hidden)', { timeout: 6000 });
-    check((await host.$$('.pod .pod-art svg')).length >= 2, '結果頒獎台顯示立繪');
+    check((await host.$$('.pod .pod-art .ccard img')).length >= 2, '結果頒獎台顯示角色卡');
     check((await a.textContent('#r-sub')).includes('擊倒'), '手機結果顯示擊倒數');
 
     await host.click('#lobby-btn');

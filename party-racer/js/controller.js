@@ -5,7 +5,7 @@ import { WEAPONS, WEAPON_STAT_LABELS, weaponById, arenaById, POWERS } from './br
 import { joinRoom, normalizeCode, passthroughQuery } from './net.js';
 import { drawShowcase, drawCarPreview } from './render.js';
 import { drawFighter, drawWeaponIcon } from './brawl-render.js';
-import { AVATAR_OPTIONS, randomAvatar, sanitizeAvatar, portraitSVG, faceSVG } from './avatar.js';
+import { CHARACTERS, charaById, isChara, randomChara, charaImg, charaImage } from './characters.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -29,7 +29,7 @@ const profile = (() => {
     color: COLORS.some((c) => c.hex === saved.color) ? saved.color : COLORS[Math.floor(Math.random() * COLORS.length)].hex,
     car: CARS.some((c) => c.id === saved.car) ? saved.car : CARS[0].id,
     weapon: WEAPONS.some((w) => w.id === saved.weapon) ? saved.weapon : WEAPONS[0].id,
-    avatar: saved.avatar ? sanitizeAvatar(saved.avatar) : randomAvatar(),
+    chara: isChara(saved.chara) ? saved.chara : randomChara(),
   };
 })();
 const placeholderName = FUN_NAMES[Math.floor(Math.random() * FUN_NAMES.length)];
@@ -83,7 +83,7 @@ const ORD = (n) => (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
 // ── 連線 ─────────────────────────────────────────────
 
 function profileMsg() {
-  return { name: profile.name || placeholderName, color: profile.color, car: profile.car, weapon: profile.weapon, avatar: profile.avatar };
+  return { name: profile.name || placeholderName, color: profile.color, car: profile.car, weapon: profile.weapon, chara: profile.chara };
 }
 
 function connect() {
@@ -279,7 +279,7 @@ function showSetup() {
 
 function renderSetup() {
   renderColors();
-  renderAvatar();
+  renderChara();
   renderGear();
 }
 
@@ -299,76 +299,47 @@ function changed() {
 
 // ── 角色設定 ─────────────────────────────────────────
 
-const AV_FIELDS = [
-  { key: 'species', label: '動物', thumb: 'face' },
-  { key: 'fur', label: '毛色', swatch: true },
-  { key: 'pattern', label: '花紋', thumb: 'face' },
-  { key: 'eyes', label: '眼睛', thumb: 'face' },
-  { key: 'eyeColor', label: '眼睛顏色', swatch: true },
-  { key: 'mouth', label: '表情', thumb: 'face' },
-  { key: 'outfit', label: '服裝', thumb: 'bust' },
-  { key: 'acc', label: '配件', thumb: 'face' },
-];
-
-function buildAvatarFields() {
-  const box = $('avatar-fields');
-  if (box.children.length) return;
-  for (const f of AV_FIELDS) {
-    const wrap = document.createElement('div');
-    wrap.className = 'field';
-    wrap.innerHTML = `<span class="field-label">${f.label}</span>`;
-    const row = document.createElement('div');
-    row.className = f.swatch ? 'swatches' : 'opt-row';
-    row.dataset.key = f.key;
-    for (const o of AVATAR_OPTIONS[f.key]) {
-      const val = f.swatch ? o.hex : o.id;
-      const b = document.createElement('button');
-      b.dataset.val = val;
-      if (f.swatch) {
-        b.className = 'swatch';
-        b.style.setProperty('--c', o.hex);
-        b.setAttribute('aria-label', o.name);
-        b.title = o.name;
-      } else {
-        b.className = 'opt';
-        b.innerHTML = `<span class="opt-art"></span><span class="opt-name">${o.name}</span>`;
-      }
-      b.onclick = () => { profile.avatar = { ...profile.avatar, [f.key]: val }; changed(); renderAvatar(); };
-      row.appendChild(b);
-    }
-    wrap.appendChild(row);
-    box.appendChild(wrap);
-  }
-}
-
-let avatarKey = '';
-function renderAvatar() {
-  buildAvatarFields();
-  const key = JSON.stringify(profile.avatar) + profile.color;
-  if (key === avatarKey) return;
-  avatarKey = key;
-  $('chara-art').innerHTML = portraitSVG(profile.avatar, profile.color);
-  for (const row of $('avatar-fields').querySelectorAll('[data-key]')) {
-    const k = row.dataset.key;
-    const f = AV_FIELDS.find((x) => x.key === k);
-    for (const b of row.children) {
-      b.classList.toggle('selected', b.dataset.val === profile.avatar[k]);
-      if (f.thumb) {
-        const a = { ...profile.avatar, [k]: b.dataset.val };
-        b.querySelector('.opt-art').innerHTML = f.thumb === 'bust'
-          ? portraitSVG(a, profile.color, { crop: 'bust' })
-          : faceSVG(a, profile.color);
-      }
-    }
-  }
-}
-
-$('chara-random').onclick = () => {
-  profile.avatar = randomAvatar();
+// 六個角色：上方大立繪（可以左右滑或按箭頭切換），下方六格縮圖
+function selectChara(id) {
+  if (profile.chara === id) return;
+  profile.chara = id;
   changed();
-  renderAvatar();
-  vibrate(15);
-};
+  renderChara();
+  vibrate(12);
+}
+
+function stepChara(d) {
+  const i = CHARACTERS.findIndex((c) => c.id === profile.chara);
+  selectChara(CHARACTERS[(i + d + CHARACTERS.length) % CHARACTERS.length].id);
+}
+
+let charaShown = '';
+function renderChara() {
+  const list = $('chara-list');
+  if (!list.children.length) {
+    for (const c of CHARACTERS) {
+      const b = document.createElement('button');
+      b.className = 'chara-card';
+      b.dataset.id = c.id;
+      b.style.setProperty('--cc', c.color);
+      b.innerHTML = `<span class="chara-card-name">${c.name}</span><span class="chara-thumb">${charaImg(c.id, 'sprite')}</span>`;
+      b.onclick = () => selectChara(c.id);
+      list.appendChild(b);
+    }
+  }
+  for (const b of list.children) b.classList.toggle('selected', b.dataset.id === profile.chara);
+  const c = charaById(profile.chara);
+  if (charaShown !== c.id) {
+    charaShown = c.id;
+    $('chara-art').innerHTML = charaImg(c.id, 'art');
+    $('chara-art').closest('.chara-stage').style.setProperty('--cc', c.color);
+    $('chara-name').textContent = c.name;
+    $('chara-desc').textContent = c.desc;
+  }
+}
+
+$('chara-prev').onclick = () => stepChara(-1);
+$('chara-next').onclick = () => stepChara(1);
 
 function takenColors() {
   const set = new Set();
@@ -473,6 +444,7 @@ function swipe(el, fn) {
   el.addEventListener('pointercancel', () => { sx = null; });
 }
 swipe($('showcase'), stepCar);
+swipe($('chara-art'), stepChara);
 
 // ── 武器庫（彩彈大亂鬥） ─────────────────────────────
 
@@ -531,7 +503,7 @@ function drawArmory(canvas, t) {
   const W = w * dpr / k;
   const wp = weaponById(profile.weapon);
   const aim = Math.sin(t * 1.3) * 0.35;
-  const p = { x: W * 0.32, y: 84, aim, color: profile.color, avatar: profile.avatar, weapon: wp, vx: 0, vy: 0, dashT: 0, protectUntil: 0, shield: 0 };
+  const p = { x: W * 0.32, y: 84, aim, color: profile.color, chara: profile.chara, weapon: wp, vx: 0, vy: 0, dashT: 0, protectUntil: 0, shield: 0 };
   // 飛出去的彩彈
   const span = W * 0.62;
   for (let i = 0; i < 4; i++) {
@@ -557,7 +529,7 @@ function animLoop(now) {
   if (current === 'c-setup' && tab === 'gear') {
     spin += dt * 0.9;
     if (game === 'brawl') drawArmory($('wpn-showcase'), now / 1000);
-    else drawShowcase($('showcase'), carById(profile.car).shape, profile.color, spin);
+    else drawShowcase($('showcase'), carById(profile.car).shape, profile.color, spin, { face: charaImage(profile.chara, 'face') });
   }
   requestAnimationFrame(animLoop);
 }
@@ -598,8 +570,7 @@ function renderWait() {
     const car = carById(profile.car);
     $('wait-car-name').textContent = `${car.name} · ${car.type}`;
   }
-  const key = JSON.stringify(profile.avatar) + profile.color;
-  if (key !== waitKey) { waitKey = key; $('wait-art').innerHTML = portraitSVG(profile.avatar, profile.color, { crop: 'bust' }); }
+  if (profile.chara !== waitKey) { waitKey = profile.chara; $('wait-art').innerHTML = charaImg(profile.chara, 'art'); }
   document.documentElement.style.setProperty('--me', profile.color);
   $('w-room').textContent = room;
   const wt = $('wait-track');
@@ -627,7 +598,7 @@ function enterPad() {
   if (game === 'brawl') {
     for (const k of Object.keys(bin)) bin[k] = 0;
     $('b-name').textContent = name;
-    $('b-face').innerHTML = faceSVG(profile.avatar, profile.color);
+    $('b-face').innerHTML = charaImg(profile.chara, 'face');
     $('b-rank').textContent = '–';
     $('b-msg').textContent = '準備…';
     $('b-msg').className = 'pad-msg';
@@ -946,7 +917,7 @@ function showResult() {
   for (const k of Object.keys(bin)) bin[k] = 0;
   const mine = results && results.find((r) => r.id === cid);
   const rp = $('r-place');
-  $('r-art').innerHTML = portraitSVG(profile.avatar, profile.color, { crop: 'bust' });
+  $('r-art').innerHTML = charaImg(profile.chara, 'art');
   if (mine) {
     rp.innerHTML = `${mine.place}<sup>${ORD(mine.place)}</sup>`;
     rp.className = 'r-place' + (mine.place <= 3 ? ' p' + mine.place : '');

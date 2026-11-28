@@ -43,11 +43,14 @@
       <div class="chara-wrap">
         <div class="panel chara-stage">
           <div class="panel-title pink"><span>角色</span></div>
+          <button id="chara-prev" class="arrow-btn chara-arrow left" aria-label="上一個角色">◀</button>
           <div id="chara-art" class="chara-art"></div>
-          <button id="chara-random" class="btn small dice">🎲 隨機</button>
+          <button id="chara-next" class="arrow-btn chara-arrow right" aria-label="下一個角色">▶</button>
+          <div class="chara-caption"><b id="chara-name"></b><span id="chara-desc"></span></div>
         </div>
         <div class="panel chara-opts">
-          <div class="panel-title"><span>造型</span></div>
+          <div class="panel-title"><span>選角色</span></div>
+          <div id="chara-list" class="chara-list"></div>
           <label class="field">
             <span class="field-label">名稱</span>
             <input id="name-input" class="name-input" maxlength="10" placeholder="輸入你的名字" autocomplete="off" enterkeyhint="done">
@@ -56,7 +59,6 @@
             <span class="field-label">代表色（衣服、車身、彩彈）</span>
             <div id="color-list" class="color-list"></div>
           </div>
-          <div id="avatar-fields"></div>
         </div>
       </div>
     </div>

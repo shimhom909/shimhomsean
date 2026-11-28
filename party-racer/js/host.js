@@ -6,7 +6,7 @@ import { Race } from './race.js';
 import { speedOf } from './physics.js';
 import { drawCar, drawShowcase, drawGantry, CAR_SIZE, INK } from './render.js';
 import { drawTrackScene, drawTrackThumb, themeOf } from './scenery.js';
-import { faceSVG } from './avatar.js';
+import { charaImg, charaImage } from './characters.js';
 import { sfx } from './audio.js';
 import { createRoom, esc, show } from './room.js';
 import { toast, bigText, banner, resetHud, startConfetti, fmtTime } from './hud.js';
@@ -35,9 +35,11 @@ const room = createRoom({
   slotArt(el, p) {
     let cv = el.querySelector('canvas');
     if (!cv) { cv = document.createElement('canvas'); el.appendChild(cv); }
-    const key = p.car + p.color;
+    const face = charaImage(p.chara, 'face');
+    const key = p.car + p.color + p.chara + (face.complete ? '+' : '');
     if (cv.dataset.key !== key) {
-      requestAnimationFrame(() => { if (drawShowcase(cv, carById(p.car).shape, p.color, -0.55)) cv.dataset.key = key; });
+      requestAnimationFrame(() => { if (drawShowcase(cv, carById(p.car).shape, p.color, -0.55, { face })) cv.dataset.key = key; });
+      if (!face.complete) face.addEventListener('load', () => { cv.dataset.key = ''; drawShowcase(cv, carById(p.car).shape, p.color, -0.55, { face }); }, { once: true });
     }
   },
   onInput(p, m) {
@@ -97,13 +99,13 @@ function shuffle(a) {
   return a;
 }
 
-const avatars = new Map();
+const charas = new Map();
 
 function startRace() {
   room.keepAwake();
   const entries = shuffle(room.entries());
   if (!entries.length) return;
-  for (const e of entries) avatars.set(e.id, e.avatar);
+  for (const e of entries) charas.set(e.id, e.chara);
   S.track = getTrack(G.trackId);
   S.race = new Race(S.track, entries, G.laps);
   S.racers = entries.filter((e) => !e.bot).map((e) => e.id);
@@ -169,7 +171,7 @@ function handleRaceEvents() {
 function showResults() {
   if (!S.race || S.phase !== 'play') return;
   S.phase = 'results';
-  const list = S.race.results().map((r) => ({ ...r, avatar: avatars.get(r.id) }));
+  const list = S.race.results().map((r) => ({ ...r, chara: charas.get(r.id) }));
   S.results = list;
   room.broadcast({ t: 'res', list });
   room.refreshLobby();
@@ -182,13 +184,13 @@ function showResults() {
     const el = document.createElement('div');
     el.className = 'pod p' + place;
     el.style.setProperty('--pc', r.color);
-    el.innerHTML = `<canvas></canvas><div class="pod-name"><span class="pod-face">${faceSVG(r.avatar, r.color)}</span>${esc(r.name)}</div><div class="pod-time">${sub(r)}</div><div class="pod-block"><span class="pod-no">${place}</span></div>`;
+    el.innerHTML = `<div class="pod-stage"><canvas></canvas>${charaImg(r.chara, 'sprite', 'pod-chibi')}</div><div class="pod-name"><span class="pod-face">${charaImg(r.chara, 'face')}</span>${esc(r.name)}</div><div class="pod-time">${sub(r)}</div><div class="pod-block"><span class="pod-no">${place}</span></div>`;
     pod.appendChild(el);
   }
   $('results-table').innerHTML = list.slice(3).map((r) => `
     <div class="res-row" style="--pc:${r.color}">
       <div class="res-place">${r.place}</div>
-      <div class="res-face">${faceSVG(r.avatar, r.color)}</div>
+      <div class="res-face">${charaImg(r.chara, 'face')}</div>
       <div class="res-name">${esc(r.name)}${r.bot ? ' <span class="tag">電腦</span>' : ''}<div class="res-sub">${esc(carById(r.car).name)} · 最快單圈 ${r.best != null ? r.best.toFixed(2) + ' 秒' : '—'}</div></div>
       <div class="res-time">${sub(r)}</div>
     </div>`).join('');
@@ -196,7 +198,7 @@ function showResults() {
   requestAnimationFrame(() => {
     for (const el of pod.children) {
       const r = list[+el.className.match(/p(\d)/)[1] - 1];
-      drawShowcase(el.querySelector('canvas'), carById(r.car).shape, r.color, -0.5);
+      drawShowcase(el.querySelector('canvas'), carById(r.car).shape, r.color, -0.5, { face: charaImage(r.chara, 'face') });
     }
     startConfetti();
   });
@@ -277,8 +279,13 @@ function drawSkids(race) {
       g.stroke();
     }
     car.prevWheels = wheels;
-    if (car.offroad && spd > 60 && Math.random() < 0.5) {
-      particles.push({ x: rx, y: ry, vx: -car.vx * 0.2 + (Math.random() - 0.5) * 40, vy: -car.vy * 0.2 + (Math.random() - 0.5) * 40, life: 0.5, max: 0.5, c: '#bfa36a', r: 4 + Math.random() * 3 });
+    // 揚起的沙塵：出界或甩尾時
+    if ((car.offroad && spd > 60 && Math.random() < 0.5) || (marking && Math.random() < 0.35)) {
+      const k = Math.random() < 0.5 ? 0 : 1;
+      particles.push({
+        x: wheels[k][0], y: wheels[k][1], vx: -car.vx * 0.15 + (Math.random() - 0.5) * 30, vy: -car.vy * 0.15 + (Math.random() - 0.5) * 30,
+        life: 0.7, max: 0.7, c: car.offroad ? '#b89a62' : '#c9b48a', r: 4 + Math.random() * 3, grow: 1.8,
+      });
     }
   }
 }
@@ -292,9 +299,10 @@ function render() {
 
   ctx.setTransform(...view.m);
   for (const p of particles) {
-    ctx.globalAlpha = Math.max(0, p.life / p.max) * 0.8;
+    const age = 1 - Math.max(0, p.life / p.max);
+    ctx.globalAlpha = (1 - age) * 0.75;
     ctx.fillStyle = p.c;
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (1 + age * (p.grow || 0)), 0, Math.PI * 2); ctx.fill();
   }
   ctx.globalAlpha = 1;
 
@@ -303,7 +311,7 @@ function render() {
     ctx.setTransform(...view.m);
     ctx.translate(car.x, car.y);
     ctx.rotate(car.a);
-    drawCar(ctx, car.def.shape, car.color, { boost: car.boosting, brake: car.input.b });
+    drawCar(ctx, car.def.shape, car.color, { boost: car.boosting, brake: car.input.b, face: charaImage(charas.get(car.id), 'face') });
     ctx.restore();
   }
 

@@ -162,7 +162,7 @@ export function lineOfSight(arena, x1, y1, x2, y2, pad = 0) {
 // ── 一場比賽 ─────────────────────────────────────────
 
 export class Match {
-  // entries: [{ id, name, color, avatar, weapon, bot }]
+  // entries: [{ id, name, color, chara, weapon, bot }]   chara：角色 id（characters.js）
   constructor(arena, entries, duration, { rand = Math.random, botInput = null } = {}) {
     this.arena = arena;
     this.duration = duration;
@@ -179,7 +179,7 @@ export class Match {
     this.players = entries.map((e, i) => {
       const [x, y] = arena.spawns[i % arena.spawns.length];
       return {
-        id: e.id, name: e.name, color: e.color, avatar: e.avatar, bot: !!e.bot,
+        id: e.id, name: e.name, color: e.color, chara: e.chara, bot: !!e.bot,
         weapon: weaponById(e.weapon), brain: null,
         x, y, vx: 0, vy: 0, aim: Math.atan2(ARENA_H / 2 - y, ARENA_W / 2 - x),
         hp: BRAWL.hp, shield: 0, alive: true, respawnAt: 0, protectUntil: 0,
@@ -429,7 +429,7 @@ export class Match {
     return this.standings().map((p, i) => {
       if (!prev || p.ko !== prev.ko || p.deaths !== prev.deaths) place = i + 1;
       prev = p;
-      return { id: p.id, name: p.name, color: p.color, avatar: p.avatar, weapon: p.weapon.id, bot: p.bot, ko: p.ko, deaths: p.deaths, place };
+      return { id: p.id, name: p.name, color: p.color, chara: p.chara, weapon: p.weapon.id, bot: p.bot, ko: p.ko, deaths: p.deaths, place };
     });
   }
 

@@ -3,7 +3,7 @@
 import { ARENAS, ARENA_W, ARENA_H, Match, arenaById, weaponById, POWERS } from './brawl.js';
 import { brawlBotInput } from './brawl-ai.js';
 import { drawArena, drawArenaOverlay, drawArenaThumb, splat, drawFighter, drawFighterTag, drawBullet, drawPower } from './brawl-render.js';
-import { portraitSVG, faceSVG } from './avatar.js';
+import { charaImg, charaCard } from './characters.js';
 import { sfx } from './audio.js';
 import { createRoom, esc, show } from './room.js';
 import { toast, bigText, banner, resetHud, startConfetti, fmtClock } from './hud.js';
@@ -14,7 +14,6 @@ const TIMES = [1, 2, 3, 5];          // 比賽時間選項（分鐘）
 
 const G = { arenaId: ARENAS[0].id, minutes: 2 };
 
-const coverTop = (svg) => svg.replace('<svg ', '<svg preserveAspectRatio="xMidYMin slice" ');
 
 const room = createRoom({
   game: 'brawl',
@@ -27,8 +26,7 @@ const room = createRoom({
   lobbyInfo: () => ({ arena: G.arenaId, minutes: G.minutes }),
   slotSub: (p) => { const w = weaponById(p.weapon); return `${w.name} · ${w.type}`; },
   slotArt(el, p) {
-    const key = JSON.stringify(p.avatar) + p.color;
-    if (el.dataset.key !== key) { el.dataset.key = key; el.innerHTML = portraitSVG(p.avatar, p.color, { crop: 'bust' }); }
+    if (el.dataset.key !== p.chara) { el.dataset.key = p.chara; el.innerHTML = charaImg(p.chara, 'sprite'); }
   },
   onInput(p, m) {
     p.input = { mx: m.mx, my: m.my, ax: m.ax, ay: m.ay, d: m.d };
@@ -174,7 +172,7 @@ function addFeed(k, v) {
   const el = document.createElement('div');
   el.className = 'feed-row';
   el.innerHTML = k && k !== v
-    ? `<span class="feed-face" style="--pc:${k.color}">${faceSVG(k.avatar, k.color)}</span><b style="color:${k.color}">${esc(k.name)}</b><span class="feed-hit">💥</span><span class="feed-face" style="--pc:${v.color}">${faceSVG(v.avatar, v.color)}</span><b style="color:${v.color}">${esc(v.name)}</b>`
+    ? `<span class="feed-face" style="--pc:${k.color}">${charaImg(k.chara, 'face')}</span><b style="color:${k.color}">${esc(k.name)}</b><span class="feed-hit">💥</span><span class="feed-face" style="--pc:${v.color}">${charaImg(v.chara, 'face')}</span><b style="color:${v.color}">${esc(v.name)}</b>`
     : `<b style="color:${v.color}">${esc(v.name)}</b> 被擊倒`;
   const box = $('hud-feed');
   box.prepend(el);
@@ -197,14 +195,14 @@ function showResults() {
     const el = document.createElement('div');
     el.className = 'pod p' + place;
     el.style.setProperty('--pc', r.color);
-    el.innerHTML = `<div class="pod-art">${coverTop(portraitSVG(r.avatar, r.color))}</div><div class="pod-name">${esc(r.name)}</div>` +
+    el.innerHTML = `<div class="pod-art">${charaCard(r.chara)}</div><div class="pod-name">${esc(r.name)}</div>` +
       `<div class="pod-time">擊倒 ${r.ko}・被擊倒 ${r.deaths}</div><div class="pod-block"><span class="pod-no">${r.place}</span></div>`;
     pod.appendChild(el);
   }
   $('results-table').innerHTML = list.slice(3).map((r) => `
     <div class="res-row" style="--pc:${r.color}">
       <div class="res-place">${r.place}</div>
-      <div class="res-face">${faceSVG(r.avatar, r.color)}</div>
+      <div class="res-face">${charaImg(r.chara, 'face')}</div>
       <div class="res-name">${esc(r.name)}${r.bot ? ' <span class="tag">電腦</span>' : ''}<div class="res-sub">${esc(weaponById(r.weapon).name)}</div></div>
       <div class="res-time">擊倒 ${r.ko}・被擊倒 ${r.deaths}</div>
     </div>`).join('');
@@ -286,7 +284,7 @@ function updateHud(now) {
     if (!el) {
       el = document.createElement('div');
       el.className = 'rk-row';
-      el.innerHTML = `<span class="rk-pos"></span><span class="rk-face">${faceSVG(p.avatar, p.color)}</span><span class="rk-name"></span><span class="rk-lap"></span>`;
+      el.innerHTML = `<span class="rk-pos"></span><span class="rk-face">${charaImg(p.chara, 'face')}</span><span class="rk-name"></span><span class="rk-lap"></span>`;
       el.style.setProperty('--pc', p.color);
       el.querySelector('.rk-name').textContent = p.name;
       rankRows.set(p.id, el);

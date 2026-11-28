@@ -4,7 +4,7 @@
 import { CARS, COLORS, MAX_PLAYERS, FUN_NAMES } from './config.js';
 import { WEAPONS } from './brawl.js';
 import { createHost, passthroughQuery } from './net.js';
-import { sanitizeAvatar, randomAvatar, faceSVG } from './avatar.js';
+import { CHARACTERS, isChara, randomChara, charaImg } from './characters.js';
 import { sfx, unlockAudio, setMuted, isMuted } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
@@ -17,13 +17,6 @@ export function esc(s) {
 
 export function show(id) {
   for (const el of document.querySelectorAll('.screen')) el.classList.toggle('hidden', el.id !== id);
-}
-
-function seeded(seed) {
-  return () => {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
 }
 
 function cleanName(s) {
@@ -123,7 +116,7 @@ export function createRoom(opts) {
         setTimeout(() => link.close(), 800);
         return null;
       }
-      p = { id, ready: false, joinedAt: Date.now(), link, name: '', color: null, car: CARS[0].id, weapon: WEAPONS[0].id, avatar: sanitizeAvatar(null) };
+      p = { id, ready: false, joinedAt: Date.now(), link, name: '', color: null, car: CARS[0].id, weapon: WEAPONS[0].id, chara: randomChara() };
       S.players.set(id, p);
       applyProfile(p, m);
       sfx.join();
@@ -156,7 +149,7 @@ export function createRoom(opts) {
     p.name = name || p.name || FUN_NAMES[Math.floor(Math.random() * FUN_NAMES.length)];
     if (m.car && CARS.some((c) => c.id === m.car)) p.car = m.car;
     if (m.weapon && WEAPONS.some((w) => w.id === m.weapon)) p.weapon = m.weapon;
-    if (m.avatar) p.avatar = sanitizeAvatar(m.avatar);
+    if (isChara(m.chara)) p.chara = m.chara;
     const want = COLORS.some((c) => c.hex === m.color) ? m.color : null;
     if (want && !colorTaken(want, p.id)) p.color = want;
     else if (!p.color || colorTaken(p.color, p.id)) {
@@ -195,6 +188,10 @@ export function createRoom(opts) {
     const max = MAX_PLAYERS - S.players.size;
     S.botCount = Math.max(0, Math.min(S.botWanted, max));
     const used = new Set([...S.players.values()].map((p) => p.color));
+    // 電腦先挑真人沒選的角色（固定順序，等候室才不會一直換人）
+    const taken = new Set([...S.players.values()].map((p) => p.chara));
+    const order = [2, 1, 0, 5, 4, 3].map((i) => CHARACTERS[i].id);
+    const charas = [...order.filter((id) => !taken.has(id)), ...order.filter((id) => taken.has(id))];
     S.bots = [];
     for (let k = 0; k < S.botCount; k++) {
       const color = (COLORS.find((c) => !used.has(c.hex)) || COLORS[k % COLORS.length]).hex;
@@ -202,7 +199,7 @@ export function createRoom(opts) {
       S.bots.push({
         id: 'bot-' + k, name: '電腦 ' + (k + 1), color, bot: true, ready: true, connected: true,
         car: CARS[(k + 1) % CARS.length].id, weapon: WEAPONS[k % WEAPONS.length].id,
-        avatar: randomAvatar(seeded(k * 7919 + 13)),
+        chara: charas[k % charas.length],
       });
     }
   }
@@ -212,7 +209,7 @@ export function createRoom(opts) {
   room.entries = () => {
     rebuildBots();
     return [
-      ...room.humans().filter((p) => p.connected).map((p) => ({ id: p.id, name: p.name, color: p.color, car: p.car, weapon: p.weapon, avatar: p.avatar })),
+      ...room.humans().filter((p) => p.connected).map((p) => ({ id: p.id, name: p.name, color: p.color, car: p.car, weapon: p.weapon, chara: p.chara })),
       ...S.bots.map((b) => ({ ...b })),
     ];
   };
@@ -293,7 +290,7 @@ export function createRoom(opts) {
   }
 
   const publicInfo = (p) => ({
-    id: p.id, name: p.name, color: p.color, car: p.car, weapon: p.weapon, avatar: p.avatar,
+    id: p.id, name: p.name, color: p.color, car: p.car, weapon: p.weapon, chara: p.chara,
     ready: !!p.ready, connected: !!p.connected, bot: !!p.bot,
   });
 
@@ -347,9 +344,9 @@ export function createRoom(opts) {
       else { st.textContent = '設定中'; st.className = 'slot-badge wait'; }
       el.style.setProperty('--pc', p.color);
       el.classList.toggle('disconnected', !p.connected);
-      const faceKey = JSON.stringify(p.avatar) + p.color;
+      const faceKey = p.chara;
       const face = el.querySelector('.slot-face');
-      if (face.dataset.key !== faceKey) { face.dataset.key = faceKey; face.innerHTML = faceSVG(p.avatar, p.color); }
+      if (face.dataset.key !== faceKey) { face.dataset.key = faceKey; face.innerHTML = charaImg(p.chara, 'face'); }
       opts.slotArt(el.querySelector('.slot-art'), p);
       nodes.push(el);
     }

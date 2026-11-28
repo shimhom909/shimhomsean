@@ -35,6 +35,11 @@
   </div>
 
   <div class="panel">
+    <div class="panel-title yellow"><span>角色</span></div>
+    <div id="roster" class="roster"></div>
+  </div>
+
+  <div class="panel">
     <div class="panel-title"><span>加入朋友的房間</span></div>
     <p>直接用相機掃主機畫面上的 QR code 最快；或在這裡輸入 4 個字的房間代碼（兩個遊戲通用）。</p>
     <div class="join-row">
@@ -47,7 +52,7 @@
     <div class="panel-title green"><span>怎麼玩</span></div>
     <ol>
       <li>主機選一個遊戲，按「建立房間」，畫面會出現 QR code</li>
-      <li>朋友用手機相機掃描，設定自己的動物角色（貓、狗、兔子、狐狸、熊、熊貓，還有毛色、花紋、服裝、配件…）和名字</li>
+      <li>朋友用手機相機掃描，從六位動物角色（加班橘貓、帽T柴柴、躺平兔、佛系水豚、想睡浣熊、崩潰羊駝）選一位，再取名字、選代表色</li>
       <li>賽車選車款、大亂鬥選武器，按「準備好了！」</li>
       <li>主機按開始，手機就變成搖桿</li>
     </ol>
@@ -60,7 +65,7 @@
   import { drawTrackThumb } from './js/scenery.js';
   import { drawArenaThumb } from './js/brawl-render.js';
   import { arenaById } from './js/brawl.js';
-  import { chibiSVG, randomAvatar } from './js/avatar.js';
+  import { CHARACTERS, charaCard, charaImg } from './js/characters.js';
 
   const extra = passthroughQuery();
   const q = extra ? '&' + extra : '';
@@ -81,8 +86,8 @@
   requestAnimationFrame(() => {
     drawTrackThumb(document.getElementById('art-racer'), buildTrack(trackById('park')));
     drawArenaThumb(document.getElementById('art-brawl'), arenaById('shrine'));
-    const colors = ['#ff70a6', '#3a86ff', '#ffd60a'];
-    document.getElementById('art-chibis').innerHTML = colors.map((c) => `<span>${chibiSVG(randomAvatar(), c)}</span>`).join('');
+    document.getElementById('art-chibis').innerHTML = ['raccoon', 'cat', 'rabbit'].map((id) => `<span>${charaImg(id, 'sprite')}</span>`).join('');
+    document.getElementById('roster').innerHTML = CHARACTERS.map((c) => charaCard(c.id)).join('');
   });
 </script>
 </body>

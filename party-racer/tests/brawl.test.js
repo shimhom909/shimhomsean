@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ARENAS, WEAPONS, BRAWL, ARENA_W, ARENA_H, Match, pointBlocked, lineOfSight, weaponById } from '../js/brawl.js';
 import { brawlBotInput } from '../js/brawl-ai.js';
-import { AVATAR_OPTIONS, sanitizeAvatar, randomAvatar, portraitSVG, chibiSVG, faceSVG } from '../js/avatar.js';
+import { existsSync, readFileSync } from 'node:fs';
+import { CHARACTERS, charaById, isChara, randomChara, charaImg, charaCard } from '../js/characters.js';
 
 function rng(seed) {
   return () => {
@@ -166,29 +167,24 @@ for (const arena of ARENAS) {
   });
 }
 
-test('動物角色：亂數產生、清理不合法的值、每種動物和組合都畫得出來', () => {
-  const a = randomAvatar(rng(4));
-  assert.deepEqual(sanitizeAvatar(a), a);
-  assert.ok(AVATAR_OPTIONS.species.length >= 3, '至少 3 種動物');
-  const bad = sanitizeAvatar({ species: '<script>', fur: 'red', acc: 'goggles' });
-  assert.equal(bad.species, AVATAR_OPTIONS.species[0].id);
-  assert.equal(bad.fur, AVATAR_OPTIONS.fur[0].hex);
-  assert.equal(bad.acc, 'goggles');
-  // 舊版存的人類角色資料，也要能安全變成動物
-  const old = sanitizeAvatar({ hair: 'twin', hairColor: '#ff9ec7', skin: '#ffe8d8', eyes: 'round', outfit: 'sailor', acc: 'cat' });
-  assert.equal(old.species, AVATAR_OPTIONS.species[0].id);
-  assert.equal(old.eyes, 'round');
-  assert.equal(old.acc, AVATAR_OPTIONS.acc[0].id);
-  const check = (av, what) => {
-    for (const fn of [portraitSVG, chibiSVG, faceSVG]) {
-      const svg = fn(av, '#3a86ff');
-      assert.ok(svg.startsWith('<svg') && svg.endsWith('</svg>'));
-      assert.ok(!svg.includes('NaN') && !svg.includes('undefined'), `${what} 的圖有壞掉的數值`);
+test('六位角色：資料完整、圖檔都在、不合法的 id 會退回預設角色', () => {
+  assert.equal(CHARACTERS.length, 6);
+  assert.equal(new Set(CHARACTERS.map((c) => c.id)).size, 6, 'id 不能重複');
+  for (const c of CHARACTERS) {
+    assert.match(c.color, /^#[0-9a-f]{6}$/i, `${c.id} 的代表色格式`);
+    assert.ok(c.name && c.desc, `${c.id} 要有名字和介紹`);
+    for (const kind of ['art', 'sprite', 'face']) {
+      const file = new URL('../' + c[kind], import.meta.url);
+      assert.ok(existsSync(file), `${c.id} 缺少圖檔 ${c[kind]}`);
+      const head = readFileSync(file).subarray(0, 12).toString('latin1');
+      assert.ok(head.startsWith('RIFF') && head.endsWith('WEBP'), `${c[kind]} 要是 WebP`);
     }
-  };
-  for (const sp of AVATAR_OPTIONS.species) {
-    for (const key of ['pattern', 'eyes', 'mouth', 'outfit', 'acc']) {
-      for (const o of AVATAR_OPTIONS[key]) check({ ...a, species: sp.id, [key]: o.id }, `${sp.id}/${key}=${o.id}`);
-    }
+    assert.ok(isChara(c.id));
+    assert.ok(charaImg(c.id, 'sprite').includes(c.sprite));
+    assert.ok(charaCard(c.id).includes(c.name) && charaCard(c.id).includes(c.color));
   }
+  assert.equal(charaById('<script>').id, CHARACTERS[0].id);
+  assert.ok(!isChara('fox') && !isChara(undefined));
+  const r = rng(4);
+  for (let k = 0; k < 20; k++) assert.ok(isChara(randomChara(r)));
 });
